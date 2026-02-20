@@ -1,61 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>MediaVault Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaVault | Studio Dashboard</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 40px; }
-        .card { background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #007bff; }
-        h1 { color: #007bff; }
-        .asset { font-size: 0.9em; color: #aaa; margin-left: 20px; }
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --accent-ai: #00f2ff;
+            --accent-camera: #ff007a;
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        h1 { font-weight: 200; letter-spacing: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+
+        .search-container { margin: 30px 0; }
+        
+        input[type="text"] {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            width: 100%;
+            max-width: 400px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus { border-color: var(--accent-ai); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .asset-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .asset-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .asset-name { font-size: 1.2rem; font-weight: 600; margin: 0; }
+
+        .badge {
+            font-size: 0.6rem;
+            font-weight: 900;
+            padding: 4px 12px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border: 1px solid;
+        }
+
+        .badge-ai { color: var(--accent-ai); border-color: var(--accent-ai); background: rgba(0, 242, 255, 0.1); }
+        .badge-camera { color: var(--accent-camera); border-color: var(--accent-camera); background: rgba(255, 0, 122, 0.1); }
+
+        .metadata { color: var(--text-dim); font-size: 0.85rem; line-height: 2; }
+        .metadata span { display: block; }
     </style>
 </head>
 <body>
-    <h1>✨ MediaVault Dashboard</h1>
-    <hr>
-    <div style="margin-bottom: 30px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
-        <form action="/" method="get" style="display: flex; gap: 10px;">
-            <input 
-                type="text" 
-                name="search" 
-                placeholder="Search collections (e.g. Tokyo)..." 
-                value="{{ search_term or '' }}"
-                style="flex-grow: 1; padding: 10px; border-radius: 4px; border: 1px solid #444; background: #111; color: white;"
-            >
-            <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                Search
-            </button>
-            <a href="/" style="padding: 10px; color: #888; text-decoration: none; font-size: 0.9em;">Clear</a>
-        </form>
-    </div>
-    
-    {% for collection in collections %}
-    <div class="card">
-        <h2>{{ collection.name }}</h2>
-        <p>{{ collection.description }}</p>
-        
-        <h3>Files:</h3>
-        <ul>
-            {% for asset in collection.assets %}
-            <li class="asset" style="list-style: none; background: #333; padding: 15px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #444;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">ID: {{ asset.id }}</span>
-                        <strong style="font-size: 1.1em; margin-left: 10px;">{{ asset.filename }}</strong>
-                    </div>
-                    <span style="color: #888; font-size: 0.8em;">{{ asset.file_type }} | {{ asset.file_size_mb }}MB</span>
+    <div class="container">
+        <h1>MEDIA VAULT 🛰️</h1>
+
+        <div class="search-container">
+            <form action="/" method="get">
+                <input type="text" name="search" placeholder="Search by name, camera, or location..." value="{{ search_term if search_term else '' }}">
+            </form>
+        </div>
+
+        <div class="asset-grid">
+            {# THE LOGIC HUB #}
+            {% if collections %}
+                {% for col in collections %}
+                    {% if col.assets %}
+                        {% for asset in col.assets %}
+                        <div class="asset-card">
+                            <div class="card-header">
+                                <p class="asset-name">{{ asset.name }}</p>
+                                <span class="badge {% if asset.source == 'AI' %}badge-ai{% else %}badge-camera{% endif %}">
+                                    {{ asset.source }}
+                                </span>
+                            </div>
+                            <div class="metadata">
+                                <span>📍 {{ asset.location or 'Studio Default' }}</span>
+                                <span>📸 {{ asset.camera_model or 'Direct Input' }}</span>
+                                <span>💾 {{ asset.file_size }} MB | {{ asset.resolution }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--text-dim);">
+                    <h3>No assets detected in the vault.</h3>
+                    <p>Try clearing your search or adding media via the Admin API.</p>
                 </div>
-                
-                <div style="margin-top: 10px; font-size: 0.85em; color: #bbb; display: flex; gap: 15px;">
-                    <span>📷 {{ asset.camera_model }}</span>
-                    <span>📍 {{ asset.location }}</span>
-                    <span>🖥️ {{ asset.resolution }}</span>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
+            {% endif %}
+        </div>
     </div>
-    {% else %}
-        <p>Your vault is empty. Use the API /docs to add your first collection!</p>
-    {% endfor %}
 </body>
 </html>

@@ -43,8 +43,8 @@ def read_dashboard(request: Request, db: Session = Depends(get_db), search: str 
     collections = query.all()
     
     return templates.TemplateResponse(
-        "dashboard.html", 
-        {"request": request, "collections": collections, "search_term": search}
+    "dashboard.html", 
+    {"request": request, "collections": collections, "search_term": search}
     )
 
 #3. Admin Route
