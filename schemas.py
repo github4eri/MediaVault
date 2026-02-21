@@ -5,6 +5,7 @@ class AssetBase(BaseModel):
     filename: str
     file_type: str
     file_size_mb: float
+    file_path: str = None
     camera_model: Optional[str] = "Unknown"
     location: Optional[str] = "Remote"
     resolution: Optional[str] = "4K"

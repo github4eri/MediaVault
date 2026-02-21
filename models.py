@@ -19,6 +19,7 @@ class DBMediaAsset(Base):
     filename = Column(String)
     file_type = Column(String) 
     file_size_mb = Column(Float)
+    file_path = Column(String, nullable=True) # The link to our image file
     camera_model = Column(String, default="Unknown")
     location = Column(String, default="Remote")
     resolution = Column(String, default="4K")
