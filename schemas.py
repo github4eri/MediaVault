@@ -1,15 +1,13 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class AssetBase(BaseModel):
-    filename: str
-    file_type: str
-    file_size_mb: float
-    file_path: str = None
-    camera_model: Optional[str] = "Unknown"
-    location: Optional[str] = "Remote"
-    resolution: Optional[str] = "4K"
-    source_type: Optional[str] = "Camera" # Add this!
+    name: str
+    source: str
+    location: Optional[str] = None
+    camera_model: Optional[str] = None
+    file_path: Optional[str] = None # Make sure this is here!
 
 class AssetPublic(AssetBase):
     id: int
@@ -18,8 +16,8 @@ class AssetPublic(AssetBase):
 
 class CollectionBase(BaseModel):
     name: str
-    description: str
-    is_published: bool = False
+    description: Optional[str] = None
+    is_published: bool = False # Add this!
 
 class CollectionPublic(CollectionBase):
     id: int

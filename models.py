@@ -1,33 +1,35 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from database import Base
+
+from sqlalchemy import Column, Integer, String, Boolean # Add Boolean here!
 
 class DBCollection(Base):
     __tablename__ = "collections"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    description = Column(String)
-    is_published = Column(Boolean, default=False)
+    description = Column(String, nullable=True)
+    is_published = Column(Boolean, default=False) # Add this!
     
-    assets = relationship("DBMediaAsset", back_populates="owner", cascade="all, delete-orphan")
+    assets = relationship("DBMediaAsset", back_populates="collection")
+    
+    # HANDSHAKE PART A: 
+    # This says "Look for a variable named 'collection' inside DBMediaAsset"
+    assets = relationship("DBMediaAsset", back_populates="collection")
 
-
-# Add "Source" to your assets
 class DBMediaAsset(Base):
-    __tablename__ = "media_assets"
+    __tablename__ = "assets"
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String)
-    file_type = Column(String) 
-    file_size_mb = Column(Float)
-    file_path = Column(String, nullable=True) # The link to our image file
-    camera_model = Column(String, default="Unknown")
-    location = Column(String, default="Remote")
-    resolution = Column(String, default="4K")
-    
-    # --- NEW: SOURCE TYPE ---
-    # Options: "Camera", "AI", "Hybrid"
-    source_type = Column(String, default="Camera") 
-
+    name = Column(String)
+    file_path = Column(String)
+    source = Column(String)
+    location = Column(String)
+    camera_model = Column(String)
+    file_size = Column(Float, nullable=True)
+    resolution = Column(String, nullable=True)
     collection_id = Column(Integer, ForeignKey("collections.id"))
-    owner = relationship("DBCollection", back_populates="assets")
-    
+
+    # HANDSHAKE PART B: 
+    # This variable MUST be named 'collection' because Part A is looking for it!
+    # And it says "Look for a variable named 'assets' inside DBCollection"
+    collection = relationship("DBCollection", back_populates="assets")

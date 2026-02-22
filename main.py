@@ -1,3 +1,6 @@
+from fastapi import UploadFile, File, Form
+import shutil
+import os
 from fastapi import FastAPI, Depends, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -37,3 +40,34 @@ def add_asset(collection_id: int, asset: schemas.AssetBase, db: Session = Depend
     db.add(new_asset)
     db.commit()
     return {"status": "Asset added to the vault!"}
+
+@app.post("/upload/")
+async def upload_asset(
+    name: str = Form(...),
+    source: str = Form(...),
+    location: str = Form(None),
+    camera_model: str = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(database.get_db)
+):
+    # Create the folder if it doesn't exist
+    os.makedirs("static/uploads", exist_ok=True)
+    
+    file_location = f"static/uploads/{file.filename}"
+    with open(file_location, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Make sure these names match YOUR models.py exactly!
+    new_asset = models.DBMediaAsset(
+        name=name,
+        source=source,
+        location=location,
+        camera_model=camera_model,
+        file_path=file.filename,
+        collection_id=1 
+    )
+    db.add(new_asset)
+    db.commit()
+    
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/", status_code=303)
