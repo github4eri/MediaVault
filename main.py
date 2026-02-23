@@ -21,10 +21,31 @@ templates = Jinja2Templates(directory="templates")
 
 # 2. THE DASHBOARD (The Face)
 @app.get("/", response_class=HTMLResponse)
-def read_dashboard(request: Request, db: Session = Depends(database.get_db)):
-    collections = db.query(models.DBCollection).all()
-    return templates.TemplateResponse("dashboard.html", {"request": request, "collections": collections})
+async def read_dashboard(request: Request, search: str = None, db: Session = Depends(database.get_db)):
+    # 🕵️ DEBUG LOG 1
+    print(f"\n--- SEARCH DEBUG START ---")
+    print(f"1. URL Search Term: '{search}'")
 
+    query = db.query(models.DBMediaAsset)
+    
+    if search and search.strip():
+        # Case-insensitive search
+        query = query.filter(models.DBMediaAsset.name.ilike(f"%{search}%"))
+        print(f"2. Filter applied for: {search}")
+    
+    # 🕵️ DEBUG LOG 2
+    assets = query.all()
+    print(f"3. Number of assets found in DB: {len(assets)}")
+    
+    collections = db.query(models.DBCollection).all()
+    print(f"--- SEARCH DEBUG END ---\n")
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, 
+        "assets": assets, 
+        "collections": collections,
+        "search_term": search
+    })
 # 3. ADMIN: CREATE A COLLECTION (The Folder)
 @app.post("/collections", tags=["Admin"])
 def create_collection(col: schemas.CollectionBase, db: Session = Depends(database.get_db)):
@@ -50,14 +71,13 @@ async def upload_asset(
     file: UploadFile = File(...),
     db: Session = Depends(database.get_db)
 ):
-    # Create the folder if it doesn't exist
+    # --- Everything for UPLOAD must be indented under here ---
     os.makedirs("static/uploads", exist_ok=True)
     
     file_location = f"static/uploads/{file.filename}"
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Make sure these names match YOUR models.py exactly!
     new_asset = models.DBMediaAsset(
         name=name,
         source=source,
@@ -69,5 +89,17 @@ async def upload_asset(
     db.add(new_asset)
     db.commit()
     
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/", status_code=303)
+
+# --- NOW we start a brand new "island" for DELETE ---
+@app.post("/delete/{asset_id}")
+async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
+    db_asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    
+    if db_asset:
+        db.delete(db_asset)
+        db.commit()
+        
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/", status_code=303)

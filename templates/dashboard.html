@@ -48,12 +48,15 @@
 
         input[type="text"]:focus { border-color: var(--accent-ai); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
 
-        .asset-grid {
+        .assets-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            /* This line is the magic: it creates as many columns as will fit! */
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 25px;
-        }
-
+            width: 100%;
+            padding: 20px 0;
+}
+        
         .asset-card {
             background: var(--card-bg);
             backdrop-filter: blur(15px);
@@ -94,10 +97,20 @@
     <div class="container">
         <h1>MEDIA VAULT ✨</h1>
 
-        <div class="search-container">
-            <form action="/" method="get">
-                <input type="text" name="search" placeholder="Search by name, camera, or location..." value="{{ search_term if search_term else '' }}">
+            
+        <div class="search-container" style="margin-bottom: 20px;">
+            <form action="/" method="get" style="display: flex; gap: 10px;">
+                <input type="text" name="search" placeholder="Search..." value="{{ search_term or '' }}" style="...">
+                <button type="submit">🔍</button>
             </form>
+        
+            {# --- ADD THIS PART HERE --- #}
+            {% if search_term %}
+                <p style="margin: 8px 0 0 5px; font-size: 0.85rem;">
+                    Showing results for "<strong>{{ search_term }}</strong>" 
+                    <a href="/" style="color: #ff6b6b; text-decoration: none; margin-left: 10px;">✖ Clear Search</a>
+                </p>
+            {% endif %}
         </div>
 
         <div class="upload-section">
@@ -130,53 +143,39 @@
         </script>
         
         <div class="asset-grid">
-            {# THE LOGIC HUB #}
-            {% if collections %}
-                {% for col in collections %}
-                    {% if col.assets %}
-                        {% for asset in col.assets %}
-                        <div class="asset-card">
-                            {% if asset.file_path %}
-                            <div class="asset-preview" style="margin-bottom: 15px; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); height: 200px;">
-                                
-                                {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') or asset.file_path.endswith('.webm') %}
-                                    <video style="width: 100%; height: 100%; object-fit: cover; display: block;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
-                                        <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
-                                        Your browser does not support the video tag.
-                                    </video>
-                                {% else %}
-                                    <img src="/static/uploads/{{ asset.file_path }}" 
-                                         alt="{{ asset.name }}" 
-                                         style="width: 100%; height: 100%; object-fit: cover; display: block;">
-                                {% endif %}
-                                
-                            </div>
-                            {% else %}
-                            <div style="height: 200px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border-radius: 12px; margin-bottom: 15px; color: #8b949e;">
-                                <span>No Preview Available</span>
-                            </div>
-                            {% endif %} <div class="card-header">
-                                <p class="asset-name">{{ asset.name }}</p>
-                                <span class="badge {% if asset.source == 'AI' %}badge-ai{% else %}badge-camera{% endif %}">
-                                    {{ asset.source }}
-                                </span>
-                            </div>
-
-                            <div class="metadata">
-                                <span>📍 {{ asset.location or 'Studio Default' }}</span>
-                                <span>📸 {{ asset.camera_model or 'Direct Input' }}</span>
-                                <span>💾 {{ asset.file_size }} MB | {{ asset.resolution }}</span>
-                            </div>
-                        </div>
-                        {% endfor %}
+            {# THE SMART LOGIC HUB #}
+{% if assets %}
+    <div class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+        {% for asset in assets %}
+            <div class="asset-card">
+                <div class="asset-preview" style="height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
+                    {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') %}
+                        <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
+                            <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="/static/uploads/{{ asset.file_path }}" style="width: 100%; height: 100%; object-fit: cover;">
                     {% endif %}
-                {% endfor %}
-            {% else %}
-                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--text-dim);">
-                    <h3>No assets detected in the vault.</h3>
-                    <p>Try clearing your search or adding media via the Admin API.</p>
                 </div>
-            {% endif %}
+
+                <div class="asset-info">
+                    <form action="/delete/{{ asset.id }}" method="post" style="float: right;">
+                        <button type="submit" onclick="return confirm('Delete this?')" style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">🗑️</button>
+                    </form>
+                    <h3 style="margin: 0; font-size: 1.1rem;">{{ asset.name }}</h3>
+                    <p style="font-size: 0.8rem; color: #8b949e; margin-top: 5px;">
+                        📍 {{ asset.location }} | 📁 {{ asset.collection.name }}
+                    </p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 100px; color: #8b949e;">
+        <p style="font-size: 1.5rem;">🌌 No assets found for "{{ search_term }}"</p>
+        <a href="/" style="color: #6366f1; text-decoration: none;">Reset Vault View</a>
+    </div>
+{% endif %}
         </div>
 </body>
 </html>
