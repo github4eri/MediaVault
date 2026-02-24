@@ -22,30 +22,27 @@ templates = Jinja2Templates(directory="templates")
 # 2. THE DASHBOARD (The Face)
 @app.get("/", response_class=HTMLResponse)
 async def read_dashboard(request: Request, search: str = None, db: Session = Depends(database.get_db)):
-    # 🕵️ DEBUG LOG 1
-    print(f"\n--- SEARCH DEBUG START ---")
-    print(f"1. URL Search Term: '{search}'")
-
-    query = db.query(models.DBMediaAsset)
     
+    # 1. We tell the database: "Give me assets, but count BACKWARDS from the highest ID"
+    query = db.query(models.DBMediaAsset).order_by(models.DBMediaAsset.id.desc())
+    
+    # 2. Apply search filter if it exists
     if search and search.strip():
-        # Case-insensitive search
         query = query.filter(models.DBMediaAsset.name.ilike(f"%{search}%"))
-        print(f"2. Filter applied for: {search}")
     
-    # 🕵️ DEBUG LOG 2
     assets = query.all()
-    print(f"3. Number of assets found in DB: {len(assets)}")
-    
     collections = db.query(models.DBCollection).all()
-    print(f"--- SEARCH DEBUG END ---\n")
+    
+    total_count = db.query(models.DBMediaAsset).count()
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
         "collections": collections,
-        "search_term": search
+        "search_term": search,
+        "total_count": total_count
     })
+
 # 3. ADMIN: CREATE A COLLECTION (The Folder)
 @app.post("/collections", tags=["Admin"])
 def create_collection(col: schemas.CollectionBase, db: Session = Depends(database.get_db)):
