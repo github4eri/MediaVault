@@ -115,12 +115,27 @@
 
             
         <div class="search-container" style="margin-bottom: 20px;">
-            <p style="color: #8b949e; margin-bottom: 10px;">
-                📊 Vault Status: <strong>{{ total_count }}</strong> assets archived
-            </p>
+            <div class="stats-bar" style="margin-bottom: 20px; color: #8b949e; font-size: 0.9rem;">
+                📊 <strong>Vault Status:</strong> {{ total_count }} items archived
+                {% if search_term %}
+                    | 🔍 Showing results for "{{ search_term }}"
+                {% endif %}
+            </div>
             <form action="/" method="get" style="display: flex; gap: 10px;">
-                <input type="text" name="search" placeholder="Search..." value="{{ search_term or '' }}" style="...">
-                <button type="submit" style="
+                <input type="text" name="search" placeholder="Search..." value="{{ search_term or '' }}" 
+                style="
+                    background: rgba(255, 255, 255, 0.05); 
+                    border: 1px solid rgba(255, 255, 255, 0.1); 
+                    border-radius: 12px; 
+                    padding: 10px 15px; 
+                    color: white; 
+                    outline: none; 
+                    width: 250px;
+                    transition: all 0.3s ease;
+                "
+                onfocus="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(99, 102, 241, 0.5)';"
+                onblur="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
+            >                <button type="submit" style="
                     background: transparent; 
                     border: none; 
                     cursor: pointer; 
@@ -138,11 +153,20 @@
         
             {# --- ADD THIS PART HERE --- #}
             {% if search_term %}
-                <p style="margin: 8px 0 0 5px; font-size: 0.85rem;">
-                    Showing results for "<strong>{{ search_term }}</strong>" 
-                    <a href="/" style="color: #ff6b6b; text-decoration: none; margin-left: 10px;">✖ Clear Search</a>
-                </p>
-            {% endif %}
+            <p style="margin: 8px 0 0 5px; font-size: 0.85rem; color: #8b949e;">
+                Showing results for "<strong>{{ search_term }}</strong>" 
+                <a href="/" style="
+                    margin-left: 10px;
+                    color: #ff4d4d; 
+                    text-decoration: none; 
+                    font-weight: bold;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(255, 77, 77, 0.3);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                ">✕ Clear Search</a>
+            </p>
+        {% endif %}
         </div>
 
         <div class="upload-section">

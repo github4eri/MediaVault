@@ -22,25 +22,20 @@ templates = Jinja2Templates(directory="templates")
 # 2. THE DASHBOARD (The Face)
 @app.get("/", response_class=HTMLResponse)
 async def read_dashboard(request: Request, search: str = None, db: Session = Depends(database.get_db)):
-    
-    # 1. We tell the database: "Give me assets, but count BACKWARDS from the highest ID"
     query = db.query(models.DBMediaAsset).order_by(models.DBMediaAsset.id.desc())
     
-    # 2. Apply search filter if it exists
-    if search and search.strip():
+    if search:
         query = query.filter(models.DBMediaAsset.name.ilike(f"%{search}%"))
     
     assets = query.all()
-    collections = db.query(models.DBCollection).all()
+    # THE NEW LINE:
+    total_assets = len(assets)
     
-    total_count = db.query(models.DBMediaAsset).count()
-
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
-        "collections": collections,
-        "search_term": search,
-        "total_count": total_count
+        "total_count": total_assets, # ADD THIS
+        "search_term": search
     })
 
 # 3. ADMIN: CREATE A COLLECTION (The Folder)
