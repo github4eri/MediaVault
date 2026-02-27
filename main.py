@@ -1,22 +1,26 @@
 from fastapi import UploadFile, File, Form
 import shutil
 import os
-from fastapi import FastAPI, Depends, Request, Form
+from fastapi import FastAPI, Depends, Request, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import models, schemas, database
-
-# Create the new tables
-# This tells SQLAlchemy to create your tables if they don't exist
-models.Base.metadata.create_all(bind=database.engine)
+from fastapi import File, UploadFile
+from datetime import datetime  # <--- THE MISSING TOOL!
 
 app = FastAPI(title="MediaVault Pro")
 
+UPLOAD_DIR = "static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Create the new tables
+# This tells SQLAlchemy to create your tables if they don't exist
+
+models.Base.metadata.create_all(bind=database.engine)
+
 # 1. The Static Bridge (The one we just built!)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
 # 2. THE DASHBOARD (The Face)
@@ -69,32 +73,56 @@ def add_asset(collection_id: int, asset: schemas.AssetBase, db: Session = Depend
 
 # Update your upload function arguments to include category_id
 @app.post("/upload/")
-async def create_upload(
-    name: str = Form(...),
-    source: str = Form(...),
-    location: str = Form(None),      # Changed (...) to (None) to make it optional
-    camera_model: str = Form(None),  # Changed (...) to (None) to make it optional
-    category_id: int = Form(...),
-    file: UploadFile = File(...),
+async def upload(
+    request: Request, 
+    name: str = Form(...), 
+    location: str = Form(...), 
+    category_id: int = Form(...), 
+    file: UploadFile = File(...), # <--- ADD THIS LINE HERE!
     db: Session = Depends(database.get_db)
 ):
-    # ... rest of your code
-    # Save file logic remains the same...
-    file_path = file.filename 
-    # (Make sure your file saving code is still here)
+    # Now 'file' is defined and we can use it!
+    filename = f"{datetime.now().timestamp()}_{file.filename}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
     new_asset = models.DBMediaAsset(
-        name=name,
-        file_path=file_path,
-        source=source,
-        location=location,
-        camera_model=camera_model,
-        category_id=category_id # ADD THIS LINE
+        name=name, 
+        location=location, 
+        file_path=filename, # <--- This now works!
+        category_id=category_id
     )
+    
     db.add(new_asset)
     db.commit()
     return RedirectResponse(url="/", status_code=303)
 
+@app.post("/add-category/")
+async def add_category(
+    name: str = Form(...), 
+    db: Session = Depends(database.get_db)
+):
+    # Check if category already exists
+    existing = db.query(models.Category).filter(models.Category.name == name).first()
+    if not existing:
+        new_cat = models.Category(name=name)
+        db.add(new_cat)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/delete-category/{cat_id}")
+async def delete_category(
+    cat_id: int, 
+    db: Session = Depends(database.get_db)
+):
+    category = db.query(models.Category).filter(models.Category.id == cat_id).first()
+    if category:
+        db.delete(category)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+    
 # --- NOW we start a brand new "island" for DELETE ---
 @app.post("/delete/{asset_id}")
 async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
@@ -110,6 +138,9 @@ async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
 @app.on_event("startup")
 def startup_populate_categories():
     db = database.SessionLocal()
+# THE PURGE: This clears out the 'ghost' assets
+    db.query(models.DBMediaAsset).delete()
+
     # Check if categories exist, if not, create them
     if not db.query(models.Category).first():
         cat1 = models.Category(name="AI Art")

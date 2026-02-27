@@ -182,23 +182,25 @@
         {% endif %}
         </div>
 
-        <div class="filter-bar" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-            <a href="/" style="
-                padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem;
-                background: {{ 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' }};
-                color: white; border: 1px solid rgba(255,255,255,0.1);
-            ">All</a>
+        <div class="filter-bar" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <a href="/" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' }}; color: white; border: 1px solid rgba(255,255,255,0.1);">All</a>
         
             {% for cat in categories %}
-            <a href="/?cat_id={{ cat.id }}" style="
-                padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem;
-                background: {{ 'rgba(99, 102, 241, 0.4)' if active_cat == cat.id else 'rgba(255,255,255,0.05)' }};
-                color: white; border: 1px solid rgba(255,255,255,0.1);
-                transition: all 0.3s ease;
-            ">{{ cat.name }}</a>
+            <div style="display: flex; align-items: center; gap: 0; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid {{ '#86efac' if cat.name == 'Photography' else '#a5b4fc' if cat.name == 'AI Art' else '#fde047' if cat.name == 'Videos' else 'rgba(255,255,255,0.2)' }};">
+                <a href="/?cat_id={{ cat.id }}" style="padding: 8px 12px 8px 16px; text-decoration: none; font-size: 0.85rem; color: white;">
+                    {{ cat.name }}
+                </a>
+                <form action="/delete-category/{{ cat.id }}" method="post" style="margin: 0; display: flex;">
+                    <button type="submit" onclick="return confirm('Delete category?')" style="background: transparent; border: none; color: rgba(255,255,255,0.3); cursor: pointer; padding: 8px 12px 8px 4px; font-size: 0.7rem;">✕</button>
+                </form>
+            </div>
             {% endfor %}
+        
+            <form action="/add-category/" method="post" style="display: inline-flex; gap: 5px; margin-left: 10px;">
+                <input type="text" name="name" placeholder="New..." required style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 5px 12px; color: white; font-size: 0.8rem; outline: none; width: 100px;">
+                <button type="submit" style="background: rgba(99, 102, 241, 0.4); border: none; border-radius: 50%; width: 28px; height: 28px; color: white; cursor: pointer;">+</button>
+            </form>
         </div>
-
         <div class="upload-section">
             <button onclick="toggleUpload()" class="btn-toggle">✨ Add New Asset</button>
             
@@ -215,11 +217,9 @@
                             <option value="AI">AI</option>
                         </select>
                         
-                        <select name="category_id" required style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
-                            <option value="" disabled selected>Select Category</option>
-                            <option value="1">AI Art</option>
-                            <option value="2">Photography</option>
-                            <option value="3">Videos</option>
+                        <select name="category_id" required>  {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
                         </select>
             
                         <input type="text" name="camera_model" placeholder="Camera/AI Model" style="grid-column: span 2; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
@@ -269,13 +269,27 @@
                     <h3 style="margin: 0; font-size: 1.1rem;">{{ asset.name }}</h3>
                     <p style="font-size: 0.8rem; color: #8b949e; margin-top: 5px; display: flex; align-items: center; gap: 8px;">
                         <span>📍 {{ asset.location }}</span> 
+                        <span style="font-size: 0.7rem; opacity: 0.6;">
+                            • {{ asset.created_at if asset.created_at else "No Date" }}
+                        </span>
+                        
                         <span style="
-                            background: rgba(99, 102, 241, 0.15); 
-                            color: #a5b4fc; 
+                            background: {{ 
+                                'rgba(99, 102, 241, 0.15)' if asset.category and asset.category.name == 'AI Art' else 
+                                'rgba(34, 197, 94, 0.15)' if asset.category and asset.category.name == 'Photography' else 
+                                'rgba(234, 179, 8, 0.15)' if asset.category and asset.category.name == 'Videos' else 
+                                'rgba(168, 85, 247, 0.15)' 
+                            }};
+                            color: {{ 
+                                '#a5b4fc' if asset.category and asset.category.name == 'AI Art' else 
+                                '#86efac' if asset.category and asset.category.name == 'Photography' else 
+                                '#fde047' if asset.category and asset.category.name == 'Videos' else 
+                                '#d8b4fe' 
+                            }}; 
                             padding: 2px 8px; 
                             border-radius: 4px; 
                             font-size: 0.7rem;
-                            border: 1px solid rgba(99, 102, 241, 0.3);
+                            border: 1px solid rgba(255,255,255,0.1);
                         ">
                             {{ asset.category.name if asset.category else "Uncategorized" }}
                         </span>
