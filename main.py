@@ -8,7 +8,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import models, schemas, database
 from fastapi import File, UploadFile
-from datetime import datetime  # <--- THE MISSING TOOL!
+from datetime import datetime
+from sqlalchemy import or_ 
+from sqlalchemy.orm import joinedload
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -31,28 +33,37 @@ async def dashboard(
     cat_id: int = None, 
     db: Session = Depends(database.get_db)
 ):
-    query = db.query(models.DBMediaAsset)
+    # 1. Start the query and JOIN the Category table so we can search it
+    query = db.query(models.DBMediaAsset).join(models.Category)
     
-    # 1. Total count (for the stats bar)
-    total_count = query.count() # <--- MAKE SURE THIS LINE IS HERE
+    # 2. Total count (before filtering)
+    total_count = db.query(models.DBMediaAsset).count() 
     
+    # 3. Smart Search: Look in Name, Location, AND Category Name
     if search:
-        query = query.filter(models.DBMediaAsset.name.contains(search))
+        query = query.filter(
+            or_(
+                models.DBMediaAsset.name.contains(search),
+                models.DBMediaAsset.location.contains(search),
+                models.Category.name.contains(search) # This makes "AI Art" search work!
+            )
+        )
     
+    # 4. Category Filter
     if cat_id:
         query = query.filter(models.DBMediaAsset.category_id == cat_id)
         
+    # 5. Execute with proper ordering
     assets = query.order_by(models.DBMediaAsset.id.desc()).all()
     categories = db.query(models.Category).all()
     
-    # 2. Add total_count to the dictionary below
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
         "search_term": search,
         "categories": categories,
         "active_cat": cat_id,
-        "total_count": total_count # <--- AND THIS LINE!
+        "total_count": total_count
     })
 
 # 3. ADMIN: CREATE A COLLECTION (The Folder)
@@ -76,22 +87,27 @@ def add_asset(collection_id: int, asset: schemas.AssetBase, db: Session = Depend
 async def upload(
     request: Request, 
     name: str = Form(...), 
-    location: str = Form(...), 
-    category_id: int = Form(...), 
-    file: UploadFile = File(...), # <--- ADD THIS LINE HERE!
+    location: str = Form(None), 
+    category_id: int = Form(...),
+    file: UploadFile = File(...),
     db: Session = Depends(database.get_db)
 ):
-    # Now 'file' is defined and we can use it!
+    # 1. GENERATE THE FILENAME FIRST
     filename = f"{datetime.now().timestamp()}_{file.filename}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
     
+    # 2. SAVE THE ACTUAL FILE TO DISK
+    filepath = os.path.join(UPLOAD_DIR, filename)
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # 3. HANDLE THE OPTIONAL LOCATION
+    final_location = location if location else "Digital/AI"
+
+    # 4. SAVE TO DATABASE (Now 'filename' is defined!)
     new_asset = models.DBMediaAsset(
         name=name, 
-        location=location, 
-        file_path=filename, # <--- This now works!
+        location=final_location, 
+        file_path=filename, 
         category_id=category_id
     )
     
