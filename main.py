@@ -1,6 +1,16 @@
+import os
+import shutil
+from datetime import datetime
+from fastapi import FastAPI, Depends, Request, Form, File, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+import models, schemas, database
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from fastapi import UploadFile, File, Form
 import shutil
-import os
 from fastapi import FastAPI, Depends, Request, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -166,3 +176,24 @@ def startup_populate_categories():
         db.commit()
     db.close()
 
+@app.get("/delete/{asset_id}")
+async def delete_asset(
+    asset_id: int, 
+    db: Session = Depends(database.get_db)
+):
+    # 1. Find the asset in the database
+    asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    
+    if asset:
+        # 2. DELETE THE ACTUAL FILE from your computer
+        file_path = os.path.join("static/uploads", asset.file_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+        # 3. DELETE THE RECORD from the database
+        db.delete(asset)
+        db.commit()
+    
+    # 4. Redirect back to the home page
+    return RedirectResponse(url="/", status_code=303)
+    
