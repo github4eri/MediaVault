@@ -226,7 +226,7 @@
             
                         <div style="grid-column: span 2; margin: 10px 0;">
                             <label style="display: block; margin-bottom: 5px; font-size: 0.8rem; color: #8b949e;">Select Media:</label>
-                            <input type="file" name="file" required style="color: white;">
+                            <input type="file" name="files" multiple required>
                         </div>
             
                         <button type="submit" class="btn-submit" style="grid-column: span 2; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
@@ -261,16 +261,27 @@
                     onclick="openLightbox(this.src, '{{ asset.name }}')" 
                     style="cursor: zoom-in; width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
                     <button type="button" 
+                        onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
+                        style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
+                    ✏️
+                    </button>
+                    <button type="button" 
                             onclick="confirmDelete('/delete/{{ asset.id }}')" 
                             class="delete-btn" 
                             style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">
                         🗑️
                     </button>
+                    
                     {% endif %}
                 </div>
 
                 <div class="asset-info">
                     <form action="/delete/{{ asset.id }}" method="post" style="float: right;">
+                        <button type="button" 
+                                onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
+                                style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
+                            ✏️
+                        </button>
                         <button type="button" 
                                 onclick="confirmDelete('/delete/{{ asset.id }}')" 
                                 class="delete-btn" 
@@ -327,6 +338,27 @@
             <div id="lightbox-caption" style="position:absolute; bottom:40px; color:white; font-size:1.5rem; font-weight:300; text-align:center; width:100%; letter-spacing: 1px;"></div>
         </div>
             <script>
+                function openEditModal(assetId, currentName, currentLocation, currentCatId) {
+                    const modal = document.getElementById('edit-modal');
+                    const form = document.getElementById('edit-form');
+                    
+                    // 1. Tell the form which ID to update
+                    form.action = '/edit/' + assetId;
+                    
+                    // 2. Fill the text boxes
+                    document.getElementById('edit-name').value = currentName;
+                    document.getElementById('edit-location').value = currentLocation;
+                    
+                    // 3. THIS IS THE NEW PART: Set the dropdown to the right category
+                    document.getElementById('edit-category').value = currentCatId;
+                    
+                    modal.style.display = 'flex';
+                }
+
+                function closeEditModal() {
+                    document.getElementById('edit-modal').style.display = 'none';
+                }
+
                 function openLightbox(imageSrc, imageName) {
                     const lightbox = document.getElementById('lightbox');
                     const lightboxImg = document.getElementById('lightbox-img');
@@ -367,6 +399,27 @@
                 <div id="delete-modal" style="display:none; ...">
                     <button onclick="closeDeleteModal()" class="btn" style="background:#30363d;">Cancel</button>
                         <a id="confirm-delete-link" href="#" class="btn" style="background:#f85149;">Yes, Delete</a>
+                </div>
+                <div id="edit-modal" style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
+                    <div style="background:#21262d; padding:20px; border-radius:12px; border:1px solid #30363d; width:90%; max-width:400px;">
+                        <h3 style="color:white; margin-top:0;">✏️ Edit Details</h3>
+                        
+                        <form id="edit-form" method="POST">
+                            <input type="text" name="new_name" id="edit-name" placeholder="New Title" required style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                            <input type="text" name="new_location" id="edit-location" placeholder="New Location" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                            
+                            <select name="new_category_id" id="edit-category" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                                <button type="button" onclick="closeEditModal()" class="btn" style="background:#30363d;">Cancel</button>
+                                <button type="submit" class="btn" style="background:#238636;">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
 </body>

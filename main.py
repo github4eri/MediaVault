@@ -21,6 +21,7 @@ from fastapi import File, UploadFile
 from datetime import datetime
 from sqlalchemy import or_ 
 from sqlalchemy.orm import joinedload
+from typing import List
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -76,7 +77,31 @@ async def dashboard(
         "total_count": total_count
     })
 
-# 3. ADMIN: CREATE A COLLECTION (The Folder)
+# 3Grouping the Edit route with your other Admin tasks
+@app.post("/edit/{asset_id}", tags=["Admin"]) 
+async def edit_asset(
+    asset_id: int, 
+    new_name: str = Form(...), 
+    new_location: str = Form(None),
+    new_category_id: int = Form(...), # <--- ADD THIS LINE
+    db: Session = Depends(database.get_db)
+):
+    # 1. Find the specific photo by its ID
+    asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    
+    if asset:
+        # 2. Update the fields with the new info from the form
+        asset.name = new_name
+        asset.location = new_location
+        asset.category_id = new_category_id # <--- ADD THIS LINE
+        
+        # 3. Save to the database
+        db.commit()
+    
+    # 4. Send the user back to the dashboard to see the changes
+    return RedirectResponse(url="/", status_code=303)
+
+#4 ADMIN: CREATE A COLLECTION (The Folder)
 @app.post("/collections", tags=["Admin"])
 def create_collection(col: schemas.CollectionBase, db: Session = Depends(database.get_db)):
     new_col = models.DBCollection(**col.model_dump())
@@ -84,7 +109,7 @@ def create_collection(col: schemas.CollectionBase, db: Session = Depends(databas
     db.commit()
     return {"status": "Collection created!"}
 
-# 4. ADMIN: ADD AN ASSET (The Button you were missing!)
+# 5. ADMIN: ADD AN ASSET (The Button you were missing!)
 @app.post("/collections/{collection_id}/assets", tags=["Admin"])
 def add_asset(collection_id: int, asset: schemas.AssetBase, db: Session = Depends(database.get_db)):
     new_asset = models.DBMediaAsset(**asset.model_dump(), collection_id=collection_id)
@@ -99,43 +124,31 @@ async def upload(
     name: str = Form(...), 
     location: str = Form(None), 
     category_id: int = Form(...),
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...), # <--- Change to List[UploadFile]
     db: Session = Depends(database.get_db)
 ):
-    # 1. GENERATE THE FILENAME FIRST
-    filename = f"{datetime.now().timestamp()}_{file.filename}"
-    
-    # 2. SAVE THE ACTUAL FILE TO DISK
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # 1. We now loop through EVERY file sent
+    for file in files:
+        # Generate a unique name for each file
+        filename = f"{datetime.now().timestamp()}_{file.filename}"
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        
+        # Save the file to the folder
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    # 3. HANDLE THE OPTIONAL LOCATION
-    final_location = location if location else "Digital/AI"
-
-    # 4. SAVE TO DATABASE (Now 'filename' is defined!)
-    new_asset = models.DBMediaAsset(
-        name=name, 
-        location=final_location, 
-        file_path=filename, 
-        category_id=category_id
-    )
+        # 2. Create a database entry for each file
+        # We'll use the same Name/Location/Category for the whole batch
+        new_asset = models.DBMediaAsset(
+            name=name, 
+            location=location if location else "Bulk Upload", 
+            file_path=filename,
+            category_id=category_id
+        )
+        db.add(new_asset)
     
-    db.add(new_asset)
+    # 3. Commit everything at once at the end
     db.commit()
-    return RedirectResponse(url="/", status_code=303)
-
-@app.post("/add-category/")
-async def add_category(
-    name: str = Form(...), 
-    db: Session = Depends(database.get_db)
-):
-    # Check if category already exists
-    existing = db.query(models.Category).filter(models.Category.name == name).first()
-    if not existing:
-        new_cat = models.Category(name=name)
-        db.add(new_cat)
-        db.commit()
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/delete-category/{cat_id}")
