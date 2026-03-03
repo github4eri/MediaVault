@@ -134,34 +134,41 @@
                     | 🔍 Showing results for "{{ search_term }}"
                 {% endif %}
             </div>
-            <form action="/" method="get" style="display: flex; gap: 10px;">
+            <form action="/" method="get" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" name="search" placeholder="Search..." value="{{ search_term or '' }}" 
-                style="
-                    background: rgba(255, 255, 255, 0.05); 
-                    border: 1px solid rgba(255, 255, 255, 0.1); 
-                    border-radius: 12px; 
-                    padding: 10px 15px; 
-                    color: white; 
-                    outline: none; 
-                    width: 250px;
-                    transition: all 0.3s ease;
-                "
-                onfocus="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(99, 102, 241, 0.5)';"
-                onblur="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
-            >                <button type="submit" style="
-                    background: transparent; 
-                    border: none; 
-                    cursor: pointer; 
-                    font-size: 1.2rem; 
-                    padding: 5px; 
-                    transition: transform 0.2s ease;
-                    display: flex;
-                    align-items: center;
-                    color: white; /* Ensure the icon itself is visible */
-                    outline: none;
-                ">
+                    style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 15px; color: white; outline: none; width: 250px;">
+            
+                <select name="sort" onchange="this.form.submit()" 
+                    style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; color: white; outline: none; cursor: pointer;">
+                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>📅 Newest</option>
+                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>⏳ Oldest</option>
+                    <option value="alphabetical" {% if current_sort == 'alphabetical' %}selected{% endif %}>🔤 A-Z</option>
+                </select>
+            
+                <button type="submit" style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: white;">
                     🔍
                 </button>
+                
+                {% if selected_category %}
+                <input type="hidden" name="category_id" value="{{ selected_category }}">
+                {% endif %}
+                {% if search_term or selected_category or current_sort != 'newest' %}
+                    <a href="/" style="
+                        text-decoration: none; 
+                        color: rgba(255, 255, 255, 0.5); 
+                        font-size: 0.85rem; 
+                        margin-left: 10px;
+                        padding: 5px 10px;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 8px;
+                        transition: all 0.2s ease;
+                    " 
+                    onmouseover="this.style.color='white'; this.style.borderColor='rgba(255, 255, 255, 0.3)';" 
+                    onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
+                    >
+                        Reset Filters ✖️
+                    </a>
+                {% endif %}
             </form>
         
             {# --- ADD THIS PART HERE --- #}
@@ -183,7 +190,13 @@
         </div>
 
         <div class="filter-bar" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <a href="/" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' }}; color: white; border: 1px solid rgba(255,255,255,0.1);">All</a>
+            {% set all_bg = 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' %}
+
+                <a href="/" 
+                class="btn-category" 
+                style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ all_bg }}; color: white; border: 1px solid rgba(255,255,255,0.1);">
+                    All
+                </a>
         
             {% for cat in categories %}
             <div style="display: flex; align-items: center; gap: 0; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid {{ '#86efac' if cat.name == 'Photography' else '#a5b4fc' if cat.name == 'AI Art' else '#fde047' if cat.name == 'Videos' else 'rgba(255,255,255,0.2)' }};">

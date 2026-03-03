@@ -37,44 +37,38 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 2. THE DASHBOARD (The Face)
-@app.get("/", response_class=HTMLResponse)
-async def dashboard(
+@app.get("/")
+async def index(
     request: Request, 
+    category_id: int = None, 
     search: str = None, 
-    cat_id: int = None, 
+    sort: str = "newest", # <--- Add this new parameter!
     db: Session = Depends(database.get_db)
 ):
-    # 1. Start the query and JOIN the Category table so we can search it
-    query = db.query(models.DBMediaAsset).join(models.Category)
-    
-    # 2. Total count (before filtering)
-    total_count = db.query(models.DBMediaAsset).count() 
-    
-    # 3. Smart Search: Look in Name, Location, AND Category Name
+    query = db.query(models.DBMediaAsset)
+
+    # 1. Existing Filtering Logic
+    if category_id:
+        query = query.filter(models.DBMediaAsset.category_id == category_id)
     if search:
-        query = query.filter(
-            or_(
-                models.DBMediaAsset.name.contains(search),
-                models.DBMediaAsset.location.contains(search),
-                models.Category.name.contains(search) # This makes "AI Art" search work!
-            )
-        )
-    
-    # 4. Category Filter
-    if cat_id:
-        query = query.filter(models.DBMediaAsset.category_id == cat_id)
-        
-    # 5. Execute with proper ordering
-    assets = query.order_by(models.DBMediaAsset.id.desc()).all()
+        query = query.filter(models.DBMediaAsset.name.contains(search))
+
+    # 2. NEW Sorting Logic
+    if sort == "newest":
+        query = query.order_by(models.DBMediaAsset.id.desc())
+    elif sort == "oldest":
+        query = query.order_by(models.DBMediaAsset.id.asc())
+    elif sort == "alphabetical":
+        query = query.order_by(models.DBMediaAsset.name.asc())
+
+    assets = query.all()
     categories = db.query(models.Category).all()
-    
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
-        "search_term": search,
         "categories": categories,
-        "active_cat": cat_id,
-        "total_count": total_count
+        "current_sort": sort,        # Pass this back so the dropdown stays on the right choice
+        "selected_category": category_id
     })
 
 # 3Grouping the Edit route with your other Admin tasks
