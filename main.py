@@ -22,6 +22,8 @@ from datetime import datetime
 from sqlalchemy import or_ 
 from sqlalchemy.orm import joinedload
 from typing import List
+from pydantic import BaseModel
+from typing import List
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -32,7 +34,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 models.Base.metadata.create_all(bind=database.engine)
 
-# 1. The Static Bridge (The one we just built!)
+# 1. The Static Bridge 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -167,6 +169,16 @@ async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
         
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/", status_code=303)
+
+class BulkDeleteRequest(BaseModel):
+    asset_ids: List[int]
+
+@app.post("/bulk-delete")
+async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(database.get_db)):
+    # Delete all assets whose ID is in the list we just sent
+    db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id.in_(request.asset_ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"message": "Successfully deleted items"}
 
 @app.on_event("startup")
 def startup_populate_categories():
