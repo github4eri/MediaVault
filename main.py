@@ -24,6 +24,10 @@ from sqlalchemy.orm import joinedload
 from typing import List
 from pydantic import BaseModel
 from typing import List
+import zipfile
+import io
+import os
+from fastapi.responses import StreamingResponse
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -216,3 +220,61 @@ async def delete_asset(
     # 4. Redirect back to the home page
     return RedirectResponse(url="/", status_code=303)
     
+@app.post("/import-zip")
+async def import_zip(file: UploadFile = File(...), db: Session = Depends(database.get_db)):
+    if not file.filename.endswith('.zip'):
+        return {"error": "Please upload a .zip file"}
+
+    # 1. Read the uploaded zip into memory
+    contents = await file.read()
+    zip_buffer = io.BytesIO(contents)
+
+    with zipfile.ZipFile(zip_buffer, "r") as zip_ref:
+        # 2. Loop through every file inside the zip
+        for file_info in zip_ref.infolist():
+            if file_info.is_dir(): continue # Skip folders
+            
+            # 3. Save the file to your static/uploads folder
+            filename = file_info.filename
+            with zip_ref.open(filename) as source, open(f"static/uploads/{filename}", "wb") as target:
+                target.write(source.read())
+
+            # 4. Add to Database
+            new_asset = models.DBMediaAsset(
+                name=filename,
+                file_path=filename,
+                location="Bulk Import",
+                category_id=1 # To make sure you have at least one category in DB.
+            )
+            db.add(new_asset)
+    
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.get("/export-vault")
+async def export_vault(db: Session = Depends(database.get_db)):
+    # 1. Get all the assets you've uploaded
+    assets = db.query(models.DBMediaAsset).all()
+    
+    # 2. Create a "virtual file" in the computer's memory (RAM)
+    # This is much faster than writing a file to the hard drive!
+    zip_buffer = io.BytesIO()
+    
+    # 3. Start packing the zip file
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for asset in assets:
+            file_path = f"static/uploads/{asset.file_path}"
+            if os.path.exists(file_path):
+                # We use asset.name so the files inside the zip have nice names
+                # like "Sunset.jpg" instead of "12345_uuid.jpg"
+                zip_file.write(file_path, arcname=asset.name)
+                
+    # 4. "Rewind" the virtual file to the beginning so we can send it
+    zip_buffer.seek(0)
+    
+    # 5. Send it to the browser as a download
+    return StreamingResponse(
+        zip_buffer, 
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": "attachment; filename=my_media_vault.zip"}
+    )   

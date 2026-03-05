@@ -216,7 +216,29 @@
         </div>
         <div class="upload-section">
             <button onclick="toggleUpload()" class="btn-toggle">✨ Add New Asset</button>
-            
+            <form action="/import-zip" method="post" enctype="multipart/form-data" style="display: inline-block; margin-left: 10px;">
+                <input type="file" name="file" accept=".zip" id="zip-input" style="display: none;" onchange="this.form.submit()">
+                <button type="button" onclick="document.getElementById('zip-input').click()" class="btn" style="background: #0366d6; color: white; padding: 10px 20px; border-radius: 12px; cursor: pointer; border: none; font-weight: bold;">
+                    📥 Import Zip
+                </button>
+            </form>
+
+            <a href="/export-vault" class="btn-export" style="
+                background: #238636; 
+                color: white; 
+                text-decoration: none; 
+                padding: 10px 20px; 
+                border-radius: 12px; 
+                display: inline-flex; 
+                align-items: center; 
+                gap: 10px;
+                font-weight: bold;
+                font-size: 0.9rem;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            " onmouseover="this.style.background='#2ea043';" onmouseout="this.style.background='#238636';">
+                📦 Export Vault (.zip)
+            </a>
             <div id="uploadForm" class="glass-form" style="display: none;">
                 <h3>Upload to Vault</h3>
                 <form action="/upload/" method="post" enctype="multipart/form-data">

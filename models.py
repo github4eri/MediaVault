@@ -16,9 +16,9 @@ class DBMediaAsset(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     location = Column(String)
-    file_path = Column(String) # <--- ADD THIS LINE!
+    file_path = Column(String)
+    # 📍 ADD THESE TWO LINES IF THEY ARE MISSING:
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"))
     created_at = Column(String, default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
 
     category = relationship("Category", back_populates="assets")
-    
