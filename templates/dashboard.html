@@ -3,111 +3,574 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Vault - Dashboard</title>
+    <title>MediaVault | Studio Dashboard</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 20px; }
+        /* 1. Variables & Global Styles */
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --accent-ai: #00f2ff;
+            --accent-camera: #ff007a;
+            --accent-success: #238636;
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+        }
+    
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+    
+        .container { max-width: 1100px; margin: 0 auto; }
+    
+        /* 2. UI Components */
+        h1 { font-weight: 200; letter-spacing: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
         
-        /* The Grid */
-        .asset-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
-            gap: 20px; 
-            max-width: 1400px; 
-            margin: 0 auto; 
+        .btn-toggle { background: var(--accent-ai); color: black; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-toggle:hover { transform: scale(1.05); }
+    
+        .glass-form { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; margin-top: 15px; }
+    
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .form-grid input[type="file"], .form-grid .btn-submit { grid-column: span 2; }
+    
+        .btn-submit { background: #fff; color: #000; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: 900; }
+    
+        /* 3. Assets Grid & Cards */
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            width: 100%;
+            padding: 20px 0;
         }
-
-        /* The Card */
-        .asset-card { 
-            background: white; 
-            border: 1px solid #d0d7de; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column;
-            transition: transform 0.2s;
-            position: relative;
-        }
-
-        /* Image/Video Frame */
-        .asset-preview { 
-            height: 200px; 
-            width: 100%; 
-            background: #000; 
-            overflow: hidden; 
-        }
-        
-        .asset-preview img, .asset-preview video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
+    
+        .asset-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
             cursor: pointer;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-
-        /* AI Tags Bubbles */
-        .tag-container { padding: 10px 12px 0 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-        .ai-tag { 
-            background: rgba(35, 134, 54, 0.1); 
-            color: #238636; 
-            font-size: 11px; 
-            padding: 3px 8px; 
-            border-radius: 20px; 
-            border: 1px solid rgba(35, 134, 54, 0.2); 
-            font-weight: 600;
+    
+        .asset-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
-
-        /* Info Section */
-        .asset-info { padding: 12px; }
-        .asset-info h3 { margin: 0; font-size: 14px; color: #1f2328; }
-        .asset-info p { margin: 4px 0 0 0; font-size: 12px; color: #656d76; }
-
-        /* Checkbox */
-        .checkbox-wrapper { position: absolute; top: 10px; left: 10px; z-index: 10; }
-        
+    
+        /* 4. Checkbox Logic */
+        .asset-card .asset-checkbox {
+            opacity: 0.3;
+            transition: all 0.2s ease-in-out;
+            transform: scale(0.9);
+        }
+    
+        .asset-card:hover .asset-checkbox, 
+        .asset-checkbox:checked {
+            opacity: 1 !important;
+            transform: scale(1.1) !important;
+        }
+    
+        /* 5. Loading Overlay (The Fix) */
+        #loading-overlay {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; 
+            width: 100vw;
+            height: 100vh;
+            background: rgba(13, 17, 23, 0.95) !important;
+            z-index: 999999 !important; /* One extra 9 for safety! */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent-success);
+            pointer-events: all;
+        }
+    
+        .loader-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent-success);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+    
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Change .gallery-item to .asset-card */
+        .asset-card img {
+            width: 100%;        /* Fill the card width */
+            height: 250px;      /* Set a fixed height for a neat grid */
+            object-fit: cover;  /* 👈 This is the "Magic Shrinker" */
+            border-radius: 8px; /* Smooth corners */
+            display: block;     /* Removes weird gaps at the bottom */
+        }
     </style>
 </head>
 <body>
+    <div id="loading-overlay" style="display: none !important; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 17, 23, 0.98); z-index: 2147483647; flex-direction: column; justify-content: center; align-items: center; color: #238636; pointer-events: all;">
+        <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-left-color: #238636; border-radius: 50%; animation: loader-spin 1s linear infinite;"></div>
+        <p style="font-size: 24px; font-weight: bold; margin-top: 20px; font-family: sans-serif;">📦 Packing Vault...</p>
+        
+        <style>
+            @keyframes loader-spin { to { transform: rotate(360deg); } }
+        </style>
+    
+        <script>
+            function showLoader(isImport = false) {
+                const loader = document.getElementById('loading-overlay');
+                // It forces the style to flex
+                loader.setAttribute('style', loader.getAttribute('style').replace('display: none !important', 'display: flex !important'));
+                
+                console.log("Loader activated.");
+    
+                if (isImport) {
+                    // This waits 200ms to ensure the browser draws the black screen 
+                    // BEFORE the file window pops up and freezes the screen.
+                    setTimeout(() => {
+                        document.getElementById('zip-input').click();
+                    }, 200);
+                }
+            }
+        </script>
+    </div>
+    <div class="container">
+        <h1>MEDIA VAULT ✨</h1>
 
-    <h1 style="text-align: center; color: #1f2328;">My Smart Media Vault</h1>
+            
+        <div class="search-container" style="margin-bottom: 20px;">
+            <div class="stats-bar" style="margin-bottom: 20px; color: #8b949e; font-size: 0.9rem;">
+                📊 <strong>Vault Status:</strong> {{ total_count }} items archived
+                {% if search_term %}
+                    | 🔍 Showing results for "{{ search_term }}"
+                {% endif %}
+            </div>
+            <form action="/" method="get" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" name="search" placeholder="Search..." value="{{ search_term or '' }}" 
+                    style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 15px; color: white; outline: none; width: 250px;">
+            
+                <select name="sort" onchange="this.form.submit()" 
+                    style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px; color: white; outline: none; cursor: pointer;">
+                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>📅 Newest</option>
+                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>⏳ Oldest</option>
+                    <option value="alphabetical" {% if current_sort == 'alphabetical' %}selected{% endif %}>🔤 A-Z</option>
+                </select>
+            
+                <button type="submit" style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: white;">
+                    🔍
+                </button>
+                
+                {% if selected_category %}
+                <input type="hidden" name="category_id" value="{{ selected_category }}">
+                {% endif %}
+                {% if search_term or selected_category or current_sort != 'newest' %}
+                    <a href="/" style="
+                        text-decoration: none; 
+                        color: rgba(255, 255, 255, 0.5); 
+                        font-size: 0.85rem; 
+                        margin-left: 10px;
+                        padding: 5px 10px;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 8px;
+                        transition: all 0.2s ease;
+                    " 
+                    onmouseover="this.style.color='white'; this.style.borderColor='rgba(255, 255, 255, 0.3)';" 
+                    onmouseout="this.style.color='rgba(255, 255, 255, 0.5)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';"
+                    >
+                        Reset Filters ✖️
+                    </a>
+                {% endif %}
+            </form>
+        
+            {# --- ADD THIS PART HERE --- #}
+            {% if search_term %}
+            <p style="margin: 8px 0 0 5px; font-size: 0.85rem; color: #8b949e;">
+                Showing results for "<strong>{{ search_term }}</strong>" 
+                <a href="/" style="
+                    margin-left: 10px;
+                    color: #ff4d4d; 
+                    text-decoration: none; 
+                    font-weight: bold;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(255, 77, 77, 0.3);
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                ">✕ Clear Search</a>
+            </p>
+        {% endif %}
+        </div>
 
-    <div class="asset-grid">
-        {% if assets %}
-            {% for asset in assets %}
-            <div class="asset-card">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" name="selected_assets" value="{{ asset.id }}" style="width: 18px; height: 18px;">
-                </div>
+        <div class="filter-bar" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            {% set all_bg = 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' %}
 
-                <div class="asset-preview">
-                    {% if asset.file_path.lower().endswith(('.mp4', '.mov', '.webm')) %}
-                        <video muted loop onmouseover="this.play()" onmouseout="this.pause()">
+                <a href="/" 
+                class="btn-category" 
+                style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ all_bg }}; color: white; border: 1px solid rgba(255,255,255,0.1);">
+                    All
+                </a>
+        
+            {% for cat in categories %}
+            <div style="display: flex; align-items: center; gap: 0; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid {{ '#86efac' if cat.name == 'Photography' else '#a5b4fc' if cat.name == 'AI Art' else '#fde047' if cat.name == 'Videos' else 'rgba(255,255,255,0.2)' }};">
+                <a href="/?cat_id={{ cat.id }}" style="padding: 8px 12px 8px 16px; text-decoration: none; font-size: 0.85rem; color: white;">
+                    {{ cat.name }}
+                </a>
+                <form action="/delete-category/{{ cat.id }}" method="post" style="margin: 0; display: flex;">
+                    <button type="submit" onclick="return confirm('Delete category?')" style="background: transparent; border: none; color: rgba(255,255,255,0.3); cursor: pointer; padding: 8px 12px 8px 4px; font-size: 0.7rem;">✕</button>
+                </form>
+            </div>
+            {% endfor %}
+        
+            <form action="/add-category/" method="post" style="display: inline-flex; gap: 5px; margin-left: 10px;">
+                <input type="text" name="name" placeholder="New..." required style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 5px 12px; color: white; font-size: 0.8rem; outline: none; width: 100px;">
+                <button type="submit" style="background: rgba(99, 102, 241, 0.4); border: none; border-radius: 50%; width: 28px; height: 28px; color: white; cursor: pointer;">+</button>
+            </form>
+        </div>
+        <div class="upload-section">
+            <button onclick="toggleUpload()" class="btn-toggle">✨ Add New Asset</button>
+            <form action="/import-zip" method="post" enctype="multipart/form-data" style="display: inline-block; margin-left: 10px;">
+                <input type="file" name="file" accept=".zip" id="zip-input" style="display: none;" onchange="this.form.submit()">
+                <button type="button" onclick="document.getElementById('zip-input').click()" class="btn" style="background: #0366d6; color: white; padding: 10px 20px; border-radius: 12px; cursor: pointer; border: none; font-weight: bold;">
+                    📥 Import Zip
+                </button>
+            </form>
+
+            <a href="/export-vault" class="btn-export" style="
+                background: #238636; 
+                color: white; 
+                text-decoration: none; 
+                padding: 10px 20px; 
+                border-radius: 12px; 
+                display: inline-flex; 
+                align-items: center; 
+                gap: 10px;
+                font-weight: bold;
+                font-size: 0.9rem;
+                transition: all 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            " onmouseover="this.style.background='#2ea043';" onmouseout="this.style.background='#238636';">
+                📦 Export Vault (.zip)
+            </a>
+            <div id="uploadForm" class="glass-form" style="display: none;">
+                <h3>Upload to Vault</h3>
+                <form action="/upload/" method="post" enctype="multipart/form-data">
+                    <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        
+                        <input type="text" name="name" placeholder="Asset Name" required style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
+                        <input type="text" name="location" placeholder="Location(optional)" style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
+            
+                        <select name="source" required style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
+                            <option value="Camera">Camera</option>
+                            <option value="AI">AI</option>
+                        </select>
+                        
+                        <select name="category_id" required>  {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+            
+                        <input type="text" name="camera_model" placeholder="Camera/AI Model" style="grid-column: span 2; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">
+            
+                        <div style="grid-column: span 2; margin: 10px 0;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 0.8rem; color: #8b949e;">Select Media:</label>
+                            <input type="file" name="files" multiple required>
+                        </div>
+            
+                        <button type="submit" class="btn-submit" style="grid-column: span 2; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                            Launch to Vault 🚀
+                        </button>
+                    </div>
+                </form>
+            </div>
+        
+        <script>
+            function toggleUpload() {
+                var x = document.getElementById("uploadForm");
+                if (x.style.display === "none") { x.style.display = "block"; } 
+                else { x.style.display = "none"; }
+            }
+
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('asset-checkbox')) {
+                    const checked = document.querySelectorAll('.asset-checkbox:checked');
+                    const bar = document.getElementById('bulk-actions-bar');
+                    const countDisplay = document.getElementById('selected-count');
+                    
+                    countDisplay.innerText = checked.length;
+                    bar.style.display = checked.length > 0 ? 'flex' : 'none';
+                }
+            });
+            function toggleAll(master) {
+                const checkboxes = document.querySelectorAll('.asset-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = master.checked;
+                });
+
+                // Update the number 🔢
+                const count = document.querySelectorAll('.asset-checkbox:checked').length;
+                document.getElementById('selected-count').innerText = count;
+
+                // Tell the bar to show or hide 🙈
+                const bar = document.getElementById('bulk-actions-bar');
+                bar.style.display = count > 0 ? 'flex' : 'none';
+            }
+            async function submitBulkDelete() {
+                if (!confirm("Are you sure you want to delete all selected items?")) return;
+
+                const checked = document.querySelectorAll('.asset-checkbox:checked');
+                const ids = Array.from(checked).map(cb => cb.value);
+
+                // We'll send these IDs to the server
+                const response = await fetch('/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ asset_ids: ids })
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert("Something went wrong with the bulk delete.");
+                }
+            }
+        </script>
+        <div id="bulk-actions-bar" style="display: none; background: rgba(248, 81, 79, 0.1); border: 1px solid #f85149; padding: 15px; border-radius: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+            <label style="color: white; margin-right: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 6px;">
+                <input type="checkbox" id="select-all-master" onclick="toggleAll(this)" style="width: 16px; height: 16px;">
+                Select All
+            </label>
+            <span style="color: white; font-weight: bold;">Bulk Actions: <span id="selected-count">0</span> items selected</span>
+            <button onclick="submitBulkDelete()" class="btn" style="background: #f85149; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+                🗑️ Delete Selected
+            </button>
+        </div>
+        <div class="asset-grid">
+            {# THE SMART LOGIC HUB #}
+{% if assets %}
+    <div class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+        {% for asset in assets %}
+    <div class="asset-card" style="border: 1px solid #ddd; border-radius: 12px; overflow: hidden; margin-bottom: 20px; background: white;">
+        
+        <div class="asset-preview" style="height: 200px; background: #000;">
+            {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') %}
+                <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
+                    <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
+                </video>
+            {% else %}
+                <img src="/static/uploads/{{ asset.file_path }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% endif %}
+        </div>
+
+        {% if asset.ai_tags %}
+        <div style="padding: 10px; display: flex; flex-wrap: wrap; gap: 4px;">
+            {% for tag in asset.ai_tags.split(',') %}
+                <span style="background: #e8f5e9; color: #2e7d32; font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid #c8e6c9;">
+                    #{{ tag.strip() }}
+                </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="padding: 10px; border-top: 1px solid #eee;">
+            <h3 style="margin: 0; font-size: 14px;">{{ asset.name }}</h3>
+        </div>
+    </div>
+{% endfor %}
+            </div>
+            {% endif %}
+        
+            </div>
+                
+                <div class="asset-preview" style="height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
+                    {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') %}
+                        <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
                             <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
                         </video>
                     {% else %}
-                        <img src="/static/uploads/{{ asset.file_path }}" alt="{{ asset.name }}">
+                    <img src="/static/uploads/{{ asset.file_path }}" alt="{{ asset.name }}">
+                    alt="{{ asset.name }}" 
+                    onclick="openLightbox(this.src, '{{ asset.name }}')" 
+                    style="cursor: zoom-in; width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                    <button type="button" 
+                        onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
+                        style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
+                    ✏️
+                    </button>
+                    <button type="button" 
+                            onclick="confirmDelete('/delete/{{ asset.id }}')" 
+                            class="delete-btn" 
+                            style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">
+                        🗑️
+                    </button>
+                    
                     {% endif %}
                 </div>
 
-                {% if asset.ai_tags and asset.ai_tags != 'no tags' %}
-                <div class="tag-container">
-                    {% for tag in asset.ai_tags.split(',') %}
-                        <span class="ai-tag">#{{ tag.strip() }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
                 <div class="asset-info">
-                    <h3>{{ asset.name or "Untitled Asset" }}</h3>
-                    <p>{{ asset.location or "No Location" }}</p>
+                    <form action="/delete/{{ asset.id }}" method="post" style="float: right;">
+                        <button type="button" 
+                                onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
+                                style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
+                            ✏️
+                        </button>
+                        <button type="button" 
+                                onclick="confirmDelete('/delete/{{ asset.id }}')" 
+                                class="delete-btn" 
+                                style="background:none; border:none; cursor:pointer;">
+                            🗑️
+                        </button>
+                    </form>
+                    <h3 style="margin: 0; font-size: 1.1rem;">{{ asset.name }}</h3>
+                    <p style="font-size: 0.8rem; color: #8b949e; margin-top: 5px; display: flex; align-items: center; gap: 8px;">
+                        <span>📍 {{ asset.location }}</span> 
+                        <span style="font-size: 0.7rem; opacity: 0.6;">
+                            • {{ asset.created_at if asset.created_at else "No Date" }}
+                        </span>
+                        
+                        <span style="
+                            background: {{ 
+                                'rgba(99, 102, 241, 0.15)' if asset.category and asset.category.name == 'AI Art' else 
+                                'rgba(34, 197, 94, 0.15)' if asset.category and asset.category.name == 'Photography' else 
+                                'rgba(234, 179, 8, 0.15)' if asset.category and asset.category.name == 'Videos' else 
+                                'rgba(168, 85, 247, 0.15)' 
+                            }};
+                            color: {{ 
+                                '#a5b4fc' if asset.category and asset.category.name == 'AI Art' else 
+                                '#86efac' if asset.category and asset.category.name == 'Photography' else 
+                                '#fde047' if asset.category and asset.category.name == 'Videos' else 
+                                '#d8b4fe' 
+                            }}; 
+                            padding: 2px 8px; 
+                            border-radius: 4px; 
+                            font-size: 0.7rem;
+                            border: 1px solid rgba(255,255,255,0.1);
+                        ">
+                            {{ asset.category.name if asset.category else "Uncategorized" }}
+                        </span>
+                    </p>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div style="grid-column: 1 / -1; text-align: center; padding: 50px;">
-                <p style="color: #656d76;">Your vault is empty. Upload some art! 🚀</p>
-            </div>
-        {% endif %}
+        {% endfor %}
     </div>
+{% else %}
+    <div style="text-align: center; padding: 100px; color: #8b949e;">
+        <p style="font-size: 1.5rem;">🌌 No assets found for "{{ search_term }}"</p>
+        <a href="/" style="color: #6366f1; text-decoration: none;">Reset Vault View</a>
+    </div>
+{% endif %}
+        </div>
+        
+        </div>
+        <div id="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.9); align-items:center; justify-content:center; cursor:pointer;">
+            <span style="position:absolute; top:20px; right:35px; color:white; font-size:40px; font-weight:bold;">&times;</span>
+            
+            <img id="lightbox-img" style="max-width:90%; max-height:85%; border-radius:8px; box-shadow: 0 0 30px rgba(0,0,0,0.5); object-fit: contain;">
+            
+            <div id="lightbox-caption" style="position:absolute; bottom:40px; color:white; font-size:1.5rem; font-weight:300; text-align:center; width:100%; letter-spacing: 1px;"></div>
+        </div>
+            <script>
+                function openEditModal(assetId, currentName, currentLocation, currentCatId) {
+                    const modal = document.getElementById('edit-modal');
+                    const form = document.getElementById('edit-form');
+                    
+                    // 1. Tell the form which ID to update
+                    form.action = '/edit/' + assetId;
+                    
+                    // 2. Fill the text boxes
+                    document.getElementById('edit-name').value = currentName;
+                    document.getElementById('edit-location').value = currentLocation;
+                    
+                    // 3. THIS IS THE NEW PART: Set the dropdown to the right category
+                    document.getElementById('edit-category').value = currentCatId;
+                    
+                    modal.style.display = 'flex';
+                }
 
+                function closeEditModal() {
+                    document.getElementById('edit-modal').style.display = 'none';
+                }
+
+                function openLightbox(imageSrc, imageName) {
+                    const lightbox = document.getElementById('lightbox');
+                    const lightboxImg = document.getElementById('lightbox-img');
+                    const lightboxCap = document.getElementById('lightbox-caption');
+                    
+                    lightboxImg.src = imageSrc;
+                    lightboxCap.innerText = imageName;
+                    lightbox.style.display = 'flex'; // This "wakes up" the hidden stage
+                }
+                
+                function closeLightbox() {
+                    document.getElementById('lightbox').style.display = 'none';
+                }
+                
+                // Bonus: Close with "Esc" key
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === "Escape") {
+                        closeLightbox();
+                    }
+                });
+                
+                function confirmDelete(deleteUrl) {
+                    const modal = document.getElementById('delete-modal');
+                    const confirmLink = document.getElementById('confirm-delete-link');
+                    
+                    // Set the "Yes" button's destination to the specific photo's delete URL
+                    confirmLink.href = deleteUrl;
+                    
+                    // Show the modal
+                    modal.style.display = 'flex';
+                }
+
+                function closeDeleteModal() {
+                    document.getElementById('delete-modal').style.display = 'none';
+                }
+                
+               
+            </script>
+         
+                <div id="delete-modal" style="display:none; ...">
+                    <button onclick="closeDeleteModal()" class="btn" style="background:#30363d;">Cancel</button>
+                        <a id="confirm-delete-link" href="#" class="btn" style="background:#f85149;">Yes, Delete</a>
+                </div>
+                <div id="edit-modal" style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
+                    <div style="background:#21262d; padding:20px; border-radius:12px; border:1px solid #30363d; width:90%; max-width:400px;">
+                        <h3 style="color:white; margin-top:0;">✏️ Edit Details</h3>
+                        
+                        <form id="edit-form" method="POST">
+                            <input type="text" name="new_name" id="edit-name" placeholder="New Title" required style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                            <input type="text" name="new_location" id="edit-location" placeholder="New Location" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                            
+                            <select name="new_category_id" id="edit-category" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:white;">
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                                <button type="button" onclick="closeEditModal()" class="btn" style="background:#30363d;">Cancel</button>
+                                <button type="submit" class="btn" style="background:#238636;">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <a href="/export-vault" onclick="showLoader()" class="btn-export">...</a>
+
+                <button type="button" onclick="showLoader(); setTimeout(() => { document.getElementById('zip-input').click(); }, 100);" class="btn">
+                    📥 Import Zip
+                </button>
+                
 </body>
 </html>
+
+
