@@ -26,8 +26,17 @@ from pydantic import BaseModel
 from typing import List
 import zipfile
 import io
-import os
 from fastapi.responses import StreamingResponse
+from google import genai
+from PIL import Image 
+from dotenv import load_dotenv
+
+load_dotenv() # This searches for the .env file
+api_key = os.getenv("GEMINI_API_KEY")
+
+print(f"DEBUG: My API key is found: {api_key is not None}")
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -124,30 +133,40 @@ async def upload(
     name: str = Form(...), 
     location: str = Form(None), 
     category_id: int = Form(...),
-    files: List[UploadFile] = File(...), # <--- Change to List[UploadFile]
+    files: List[UploadFile] = File(...), 
     db: Session = Depends(database.get_db)
 ):
-    # 1. We now loop through EVERY file sent
     for file in files:
-        # Generate a unique name for each file
-        filename = f"{datetime.now().timestamp()}_{file.filename}"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        
-        # Save the file to the folder
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # --- A. Save the file locally (Existing Code) ---
+        # 1. Keep this for saving the actual file to your computer
+        save_path = os.path.join("static/uploads", file.filename) 
+        with open(save_path, "wb") as buffer:
+            buffer.write(await file.read())
 
-        # 2. Create a database entry for each file
-        # We'll use the same Name/Location/Category for the whole batch
+# 🧠 THE NEW 2026 AI BLOCK 🧠
+        try:
+            img = Image.open(file_path)
+            # New way to generate content:
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=["Give me 3 to 5 simple, one-word tags for this image, separated by commas.", img]
+            )
+            ai_tags = response.text.strip().lower()
+            print(f"DEBUG: AI Vision labeled {file.filename} as: {ai_tags}")
+        except Exception as e:
+            print(f"DEBUG: AI Vision failed: {e}")
+            ai_tags = "no tags"
+
+        # --- C. Save to Database (Including ai_tags!) ---
         new_asset = models.DBMediaAsset(
-            name=name, 
-            location=location if location else "Bulk Upload", 
-            file_path=filename,
-            category_id=category_id
-        )
+    name=name,
+    file_path=file.filename, 
+    ai_tags=ai_tags,
+    location=location,
+    category_id=category_id
+)
         db.add(new_asset)
     
-    # 3. Commit everything at once at the end
     db.commit()
     return RedirectResponse(url="/", status_code=303)
 

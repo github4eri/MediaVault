@@ -22,3 +22,5 @@ class DBMediaAsset(Base):
     created_at = Column(String, default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
 
     category = relationship("Category", back_populates="assets")
+    ai_tags = Column(String, nullable=True)
+    
