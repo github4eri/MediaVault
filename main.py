@@ -1,42 +1,33 @@
+from fastapi import FastAPI, Request, Depends, Form  # 👈 Added Depends
+from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session                   # 👈 Added Session
+from database import SessionLocal, engine           # 👈 SessionLocal 
+import models
 import os
 import shutil
 from datetime import datetime
-from fastapi import FastAPI, Depends, Request, Form, File, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-import models, schemas, database
-from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
-from fastapi import UploadFile, File, Form
-import shutil
-from fastapi import FastAPI, Depends, Request, Form, File, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-import models, schemas, database
 from fastapi import File, UploadFile
-from datetime import datetime
-from sqlalchemy import or_ 
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+import schemas, database
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 from typing import List
 from pydantic import BaseModel
-from typing import List
 import zipfile
 import io
 from fastapi.responses import StreamingResponse
 from google import genai
 from PIL import Image 
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 
 load_dotenv() # This searches for the .env file
 api_key = os.getenv("GEMINI_API_KEY")
 
 print(f"DEBUG: My API key is found: {api_key is not None}")
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"), http_options={'api_version': 'v1'})
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -47,42 +38,66 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 models.Base.metadata.create_all(bind=database.engine)
 
+# This creates a fresh database session for every request
+def get_db():
+    db = SessionLocal() # This must match whatever you named your sessionmaker
+    try:
+        yield db
+    finally:
+        db.close()
+
 # 1. The Static Bridge 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 2. THE DASHBOARD (The Face)
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def index(
     request: Request, 
-    category_id: int = None, 
     search: str = None, 
-    sort: str = "newest", # <--- Add this new parameter!
-    db: Session = Depends(database.get_db)
+    category_id: int = None, 
+    sort: str = "newest",
+    db: Session = Depends(get_db)
 ):
+    # 1. Start with the "Object" (The Power Tool)
     query = db.query(models.DBMediaAsset)
 
-    # 1. Existing Filtering Logic
+    # 2. Add Search Filter (if it exists)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (models.DBMediaAsset.name.like(search_pattern)) | 
+            (models.DBMediaAsset.location.like(search_pattern)) |
+            (models.DBMediaAsset.ai_tags.like(search_pattern))
+        )
+
+    # 3. Add Category Filter (if it exists)
     if category_id:
         query = query.filter(models.DBMediaAsset.category_id == category_id)
-    if search:
-        query = query.filter(models.DBMediaAsset.name.contains(search))
 
-    # 2. NEW Sorting Logic
-    if sort == "newest":
-        query = query.order_by(models.DBMediaAsset.id.desc())
-    elif sort == "oldest":
+    # 4. NOW apply the Sorting (The "Order By")
+    if sort == "oldest":
         query = query.order_by(models.DBMediaAsset.id.asc())
     elif sort == "alphabetical":
         query = query.order_by(models.DBMediaAsset.name.asc())
+    else:  # Default to newest
+        query = query.order_by(models.DBMediaAsset.id.desc())
 
+    # 1. Fetch the data
     assets = query.all()
     categories = db.query(models.Category).all()
+    
+    # 2. Count it
+    total_count = len(assets)
+
+    # 3. Send it to the HTML
     return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
-        "assets": assets, 
+        "request": request,
+        "assets": assets,
+        "total_count": total_count,
+        "search_term": search,
+        "current_sort": sort,
         "categories": categories,
-        "current_sort": sort,        # Pass this back so the dropdown stays on the right choice
         "selected_category": category_id
     })
 
@@ -145,26 +160,32 @@ async def upload(
 
 # 🧠 THE NEW 2026 AI BLOCK 🧠
         try:
-            img = Image.open(file_path)
-            # New way to generate content:
+            # 1. Open the image from the path we just saved
+            img = Image.open(save_path)
+            
+            # 2. Call the AI
             response = client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-2.0-flash", # 👈 'models' above, 'model' here. This is correct!
                 contents=["Give me 3 to 5 simple, one-word tags for this image, separated by commas.", img]
             )
+            
+            # 3. Clean up the answer
             ai_tags = response.text.strip().lower()
             print(f"DEBUG: AI Vision labeled {file.filename} as: {ai_tags}")
+            
         except Exception as e:
+            # If it still says 404, we'll see it here
             print(f"DEBUG: AI Vision failed: {e}")
             ai_tags = "no tags"
-
+            
         # --- C. Save to Database (Including ai_tags!) ---
         new_asset = models.DBMediaAsset(
-    name=name,
-    file_path=file.filename, 
-    ai_tags=ai_tags,
-    location=location,
-    category_id=category_id
-)
+            name=name,
+            file_path=file.filename, 
+            ai_tags=ai_tags,
+            location=location,
+            category_id=category_id
+        )
         db.add(new_asset)
     
     db.commit()

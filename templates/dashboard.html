@@ -354,122 +354,67 @@
                 🗑️ Delete Selected
             </button>
         </div>
-        <div class="asset-grid">
-            {# THE SMART LOGIC HUB #}
-{% if assets %}
-    <div class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
-        {% for asset in assets %}
-    <div class="asset-card" style="border: 1px solid #ddd; border-radius: 12px; overflow: hidden; margin-bottom: 20px; background: white;">
-        
-        <div class="asset-preview" style="height: 200px; background: #000;">
-            {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') %}
-                <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
-                    <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
-                </video>
-            {% else %}
-                <img src="/static/uploads/{{ asset.file_path }}" style="width: 100%; height: 100%; object-fit: cover;">
-            {% endif %}
-        </div>
 
-        {% if asset.ai_tags %}
-        <div style="padding: 10px; display: flex; flex-wrap: wrap; gap: 4px;">
-            {% for tag in asset.ai_tags.split(',') %}
-                <span style="background: #e8f5e9; color: #2e7d32; font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid #c8e6c9;">
-                    #{{ tag.strip() }}
-                </span>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <div style="padding: 10px; border-top: 1px solid #eee;">
-            <h3 style="margin: 0; font-size: 14px;">{{ asset.name }}</h3>
-        </div>
-    </div>
-{% endfor %}
-            </div>
-            {% endif %}
-        
-            </div>
-                
-                <div class="asset-preview" style="height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
-                    {% if asset.file_path.endswith('.mp4') or asset.file_path.endswith('.mov') %}
-                        <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
-                            <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
-                        </video>
-                    {% else %}
-                    <img src="/static/uploads/{{ asset.file_path }}" alt="{{ asset.name }}">
-                    alt="{{ asset.name }}" 
-                    onclick="openLightbox(this.src, '{{ asset.name }}')" 
-                    style="cursor: zoom-in; width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
-                    <button type="button" 
-                        onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
-                        style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
-                    ✏️
-                    </button>
-                    <button type="button" 
-                            onclick="confirmDelete('/delete/{{ asset.id }}')" 
-                            class="delete-btn" 
-                            style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">
-                        🗑️
-                    </button>
+        <div class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+            {% if assets %}
+                {% for asset in assets %}
+                <div class="asset-card">
                     
-                    {% endif %}
-                </div>
+                    <div class="checkbox-wrapper" style="position: absolute; top: 10px; left: 10px; z-index: 50;">
+                        <input type="checkbox" name="selected_assets" value="{{ asset.id }}" class="asset-checkbox" 
+                               style="width: 20px; height: 20px; cursor: pointer; accent-color: #238636;">
+                    </div>
 
-                <div class="asset-info">
-                    <form action="/delete/{{ asset.id }}" method="post" style="float: right;">
-                        <button type="button" 
-                                onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
-                                style="background:none; border:none; cursor:pointer; font-size: 1.2rem; margin-right:10px;">
-                            ✏️
-                        </button>
-                        <button type="button" 
-                                onclick="confirmDelete('/delete/{{ asset.id }}')" 
-                                class="delete-btn" 
-                                style="background:none; border:none; cursor:pointer;">
-                            🗑️
-                        </button>
-                    </form>
-                    <h3 style="margin: 0; font-size: 1.1rem;">{{ asset.name }}</h3>
-                    <p style="font-size: 0.8rem; color: #8b949e; margin-top: 5px; display: flex; align-items: center; gap: 8px;">
-                        <span>📍 {{ asset.location }}</span> 
-                        <span style="font-size: 0.7rem; opacity: 0.6;">
-                            • {{ asset.created_at if asset.created_at else "No Date" }}
-                        </span>
-                        
-                        <span style="
-                            background: {{ 
-                                'rgba(99, 102, 241, 0.15)' if asset.category and asset.category.name == 'AI Art' else 
-                                'rgba(34, 197, 94, 0.15)' if asset.category and asset.category.name == 'Photography' else 
-                                'rgba(234, 179, 8, 0.15)' if asset.category and asset.category.name == 'Videos' else 
-                                'rgba(168, 85, 247, 0.15)' 
-                            }};
-                            color: {{ 
-                                '#a5b4fc' if asset.category and asset.category.name == 'AI Art' else 
-                                '#86efac' if asset.category and asset.category.name == 'Photography' else 
-                                '#fde047' if asset.category and asset.category.name == 'Videos' else 
-                                '#d8b4fe' 
-                            }}; 
-                            padding: 2px 8px; 
-                            border-radius: 4px; 
-                            font-size: 0.7rem;
-                            border: 1px solid rgba(255,255,255,0.1);
-                        ">
-                            {{ asset.category.name if asset.category else "Uncategorized" }}
-                        </span>
-                    </p>
+                    <div class="asset-preview" style="height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 15px; background: #000;">
+                        {% if asset.file_path.lower().endswith(('.mp4', '.mov')) %}
+                            <video style="width: 100%; height: 100%; object-fit: cover;" muted loop onmouseover="this.play()" onmouseout="this.pause()">
+                                <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
+                            </video>
+                        {% else %}
+                            <img src="/static/uploads/{{ asset.file_path }}" 
+                                 alt="{{ asset.name }}" 
+                                 onclick="openLightbox(this.src, '{{ asset.name }}')" 
+                                 style="cursor: zoom-in; width: 100%; height: 100%; object-fit: cover;">
+                        {% endif %}
+                    </div>
+
+                    {% if asset.ai_tags and asset.ai_tags != 'no tags' %}
+                    <div class="tag-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+                        {% for tag in asset.ai_tags.split(',') %}
+                            <span class="ai-tag">#{{ tag.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="asset-info">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">{{ asset.name }}</h3>
+                                <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 5px;">
+                                    📍 {{ asset.location or 'Unknown' }}
+                                </p>
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;">✏️</button>
+                                <button type="button" onclick="confirmDelete('/delete/{{ asset.id }}')" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;">🗑️</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <span style="background: rgba(255,255,255,0.05); color: var(--accent-ai); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; border: 1px solid rgba(0,242,255,0.2);">
+                                {{ asset.category.name if asset.category else "Uncategorized" }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div style="text-align: center; padding: 100px; color: #8b949e;">
-        <p style="font-size: 1.5rem;">🌌 No assets found for "{{ search_term }}"</p>
-        <a href="/" style="color: #6366f1; text-decoration: none;">Reset Vault View</a>
-    </div>
-{% endif %}
-        </div>
-        
+                {% endfor %}
+            {% else %}
+                <div style="grid-column: 1 / -1; text-align: center; padding: 100px; color: #8b949e;">
+                    <p style="font-size: 1.5rem;">🌌 No assets found</p>
+                    <a href="/" style="color: var(--accent-ai); text-decoration: none;">Reset Vault View</a>
+                </div>
+            {% endif %}
         </div>
         <div id="lightbox" onclick="closeLightbox()" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.9); align-items:center; justify-content:center; cursor:pointer;">
             <span style="position:absolute; top:20px; right:35px; color:white; font-size:40px; font-weight:bold;">&times;</span>
