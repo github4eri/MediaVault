@@ -116,6 +116,28 @@
             border-radius: 8px; /* Smooth corners */
             display: block;     /* Removes weird gaps at the bottom */
         }
+
+        /* The Neon Tag Style */
+        .ai-tag {
+            background: rgba(0, 242, 255, 0.05);
+            color: #00f2ff;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .ai-tag:hover {
+            background: rgba(0, 242, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            transform: translateY(-2px);
+            border-color: #00f2ff;
+        }
     </style>
 </head>
 <body>
@@ -214,15 +236,16 @@
         <div class="filter-bar" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             {% set all_bg = 'rgba(255,255,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' %}
 
-                <a href="/" 
-                class="btn-category" 
-                style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ all_bg }}; color: white; border: 1px solid rgba(255,255,255,0.1);">
-                    All
-                </a>
+            <a href="/" 
+               class="btn-category" 
+               style="padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: {{ all_bg }}; color: white; border: 1px solid rgba(255,255,255,0.1);">
+                All
+            </a>
         
             {% for cat in categories %}
             <div style="display: flex; align-items: center; gap: 0; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid {{ '#86efac' if cat.name == 'Photography' else '#a5b4fc' if cat.name == 'AI Art' else '#fde047' if cat.name == 'Videos' else 'rgba(255,255,255,0.2)' }};">
-                <a href="/?cat_id={{ cat.id }}" style="padding: 8px 12px 8px 16px; text-decoration: none; font-size: 0.85rem; color: white;">
+                <a href="/?category_id={{ cat.id }}" 
+                style="padding: 8px 12px 8px 16px; text-decoration: none; font-size: 0.85rem; color: white;">
                     {{ cat.name }}
                 </a>
                 <form action="/delete-category/{{ cat.id }}" method="post" style="margin: 0; display: flex;">
@@ -381,7 +404,9 @@
                     {% if asset.ai_tags and asset.ai_tags != 'no tags' %}
                     <div class="tag-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
                         {% for tag in asset.ai_tags.split(',') %}
-                            <span class="ai-tag">#{{ tag.strip() }}</span>
+                        <a href="/?search={{ tag.strip() }}" class="ai-tag" style="text-decoration: none;">
+                            #{{ tag.strip() }}
+                        </a>
                         {% endfor %}
                     </div>
                     {% endif %}

@@ -51,55 +51,50 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # 2. THE DASHBOARD (The Face)
-@app.get("/", response_class=HTMLResponse)
+
+@app.get("/")
 async def index(
     request: Request, 
     search: str = None, 
-    category_id: int = None, 
-    sort: str = "newest",
-    db: Session = Depends(get_db)
+    category_id: int = None, # 👈 Matches your HTML: /?category_id=...
+    db: Session = Depends(database.get_db)
 ):
-    # 1. Start with the "Object" (The Power Tool)
+    # 1. Get categories for the top bar
+    categories = db.query(models.Category).all()
+    
+    # 2. Start the query for assets
     query = db.query(models.DBMediaAsset)
 
-    # 2. Add Search Filter (if it exists)
+    # 3. Apply Search Filter
     if search:
-        search_pattern = f"%{search}%"
         query = query.filter(
-            (models.DBMediaAsset.name.like(search_pattern)) | 
-            (models.DBMediaAsset.location.like(search_pattern)) |
-            (models.DBMediaAsset.ai_tags.like(search_pattern))
+            (models.DBMediaAsset.name.contains(search)) | 
+            (models.DBMediaAsset.ai_tags.contains(search))
         )
 
-    # 3. Add Category Filter (if it exists)
+    # 4. Apply Category Filter
     if category_id:
         query = query.filter(models.DBMediaAsset.category_id == category_id)
 
-    # 4. NOW apply the Sorting (The "Order By")
-    if sort == "oldest":
-        query = query.order_by(models.DBMediaAsset.id.asc())
-    elif sort == "alphabetical":
-        query = query.order_by(models.DBMediaAsset.name.asc())
-    else:  # Default to newest
-        query = query.order_by(models.DBMediaAsset.id.desc())
-
-    # 1. Fetch the data
-    assets = query.all()
-    categories = db.query(models.Category).all()
+    # 5. Execute and Sort
+    assets = query.order_by(models.DBMediaAsset.id.desc()).all()
     
-    # 2. Count it
-    total_count = len(assets)
-
-    # 3. Send it to the HTML
     return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "assets": assets,
-        "total_count": total_count,
-        "search_term": search,
-        "current_sort": sort,
+        "request": request, 
+        "assets": assets, 
         "categories": categories,
-        "selected_category": category_id
+        "search_term": search,
+        "active_cat": category_id, # 👈 HTML uses 'active_cat' for the "All" button glow!
+        "total_count": len(assets)
     })
+
+#Add category
+@app.post("/add-category")
+async def add_category(name: str = Form(...), db: Session = Depends(database.get_db)):
+    new_cat = models.Category(name=name)
+    db.add(new_cat)
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)
 
 # 3Grouping the Edit route with your other Admin tasks
 @app.post("/edit/{asset_id}", tags=["Admin"]) 
@@ -159,24 +154,24 @@ async def upload(
             buffer.write(await file.read())
 
 # 🧠 THE NEW 2026 AI BLOCK 🧠
-        try:
-            # 1. Open the image from the path we just saved
-            img = Image.open(save_path)
-            
-            # 2. Call the AI
-            response = client.models.generate_content(
-                model="gemini-2.0-flash", # 👈 'models' above, 'model' here. This is correct!
-                contents=["Give me 3 to 5 simple, one-word tags for this image, separated by commas.", img]
-            )
-            
-            # 3. Clean up the answer
-            ai_tags = response.text.strip().lower()
-            print(f"DEBUG: AI Vision labeled {file.filename} as: {ai_tags}")
-            
-        except Exception as e:
-            # If it still says 404, we'll see it here
-            print(f"DEBUG: AI Vision failed: {e}")
-            ai_tags = "no tags"
+       
+       # Only ask the AI to look if it's an image! 🖼️
+       # 1. Check the file extension
+        ext = os.path.splitext(file.filename)[1].lower()
+
+        # 2. ONLY call the AI if it's an image 🖼️
+        if ext in [".jpg", ".jpeg", ".png", ".webp"]:
+            try:
+                # AI Logic goes here...
+                img = Image.open(save_path)
+                # ... rest of your gemini call ...
+            except Exception as e:
+                print(f"DEBUG: AI Vision failed: {e}")
+                ai_tags = "no tags"
+        else:
+            # 3. For videos or other files, we just give it a default tag
+            print(f"Skipping AI for non-image file: {file.filename}")
+            ai_tags = "video, archive"
             
         # --- C. Save to Database (Including ai_tags!) ---
         new_asset = models.DBMediaAsset(
