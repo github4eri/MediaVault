@@ -1,8 +1,8 @@
 from google import genai  #new
-from fastapi import FastAPI, Request, Depends, Form  # 👈 Added Depends
+from fastapi import FastAPI, Request, Depends, Form  
 from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session                   # 👈 Added Session
-from database import SessionLocal, engine           # 👈 SessionLocal 
+from sqlalchemy.orm import Session                   
+from database import SessionLocal, engine           
 import models
 import os
 import shutil
@@ -23,7 +23,8 @@ from PIL import Image
 from dotenv import load_dotenv 
 import uuid
 
-client = genai.Client(api_key="AIzaSyDz5i8_qgU0oOAjlHEC0t1NPf1PPhZn7Gg")
+# The client will automatically look for the GEMINI_API_KEY 
+client = genai.Client()
 
 load_dotenv() # This searches for the .env file
 api_key = os.getenv("GEMINI_API_KEY")
