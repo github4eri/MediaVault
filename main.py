@@ -1,3 +1,4 @@
+from google import genai  #new
 from fastapi import FastAPI, Request, Depends, Form  # 👈 Added Depends
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session                   # 👈 Added Session
@@ -18,9 +19,11 @@ from pydantic import BaseModel
 import zipfile
 import io
 from fastapi.responses import StreamingResponse
-from google import genai
 from PIL import Image 
 from dotenv import load_dotenv 
+import uuid
+
+client = genai.Client(api_key="AIzaSyDz5i8_qgU0oOAjlHEC0t1NPf1PPhZn7Gg")
 
 load_dotenv() # This searches for the .env file
 api_key = os.getenv("GEMINI_API_KEY")
@@ -80,13 +83,12 @@ async def index(
     assets = query.order_by(models.DBMediaAsset.id.desc()).all()
     
     return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
-        "assets": assets, 
-        "categories": categories,
-        "search_term": search,
-        "active_cat": category_id, # 👈 HTML uses 'active_cat' for the "All" button glow!
-        "total_count": len(assets)
-    })
+    "request": request, 
+    "assets": assets, 
+    "categories": categories,
+    "active_cat": category_id, # 👈 MUST match this name!
+    "total_count": len(assets)
+})
 
 #Add category
 @app.post("/add-category")
@@ -136,43 +138,45 @@ def add_asset(collection_id: int, asset: schemas.AssetBase, db: Session = Depend
     db.commit()
     return {"status": "Asset added to the vault!"}
 
-# Update your upload function arguments to include category_id
+# Update upload function arguments to include category_id
 @app.post("/upload/")
 async def upload(
     request: Request, 
+    files: List[UploadFile] = File(...), 
     name: str = Form(...), 
     location: str = Form(None), 
-    category_id: int = Form(...),
-    files: List[UploadFile] = File(...), 
+    category_id: int = Form(...), # 👈 This matches HTML dropdown
     db: Session = Depends(database.get_db)
 ):
     for file in files:
-        # --- A. Save the file locally (Existing Code) ---
-        # 1. Keep this for saving the actual file to your computer
-        save_path = os.path.join("static/uploads", file.filename) 
+        # 1. Start with a default "Safety" value
+        ai_tags = "no tags"
+        
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}{file_extension}"
+        save_path = os.path.join(UPLOAD_DIR, unique_filename)
+
         with open(save_path, "wb") as buffer:
-            buffer.write(await file.read())
+            shutil.copyfileobj(file.file, buffer)
 
-# 🧠 THE NEW 2026 AI BLOCK 🧠
-       
-       # Only ask the AI to look if it's an image! 🖼️
-       # 1. Check the file extension
-        ext = os.path.splitext(file.filename)[1].lower()
-
-        # 2. ONLY call the AI if it's an image 🖼️
-        if ext in [".jpg", ".jpeg", ".png", ".webp"]:
+        # 2. Only attempt AI analysis if it's an image 🖼️
+        if file_extension in [".jpg", ".jpeg", ".png", ".webp"]:
             try:
-                # AI Logic goes here...
+                # 🖼️ open the image and send it to the new client
+                from PIL import Image
                 img = Image.open(save_path)
-                # ... rest of your gemini call ...
+                
+                # New "Modern" call syntax:
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=["Describe this image with 3 to 5 simple comma-separated tags.", img]
+                )
+                
+                ai_tags = response.text.strip().lower()
             except Exception as e:
                 print(f"DEBUG: AI Vision failed: {e}")
-                ai_tags = "no tags"
-        else:
-            # 3. For videos or other files, we just give it a default tag
-            print(f"Skipping AI for non-image file: {file.filename}")
-            ai_tags = "video, archive"
-            
+                # Note: ai_tags remains "no tags", so the database save won't crash!
+                        
         # --- C. Save to Database (Including ai_tags!) ---
         new_asset = models.DBMediaAsset(
             name=name,
