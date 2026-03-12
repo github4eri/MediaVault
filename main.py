@@ -23,7 +23,7 @@ from PIL import Image
 from dotenv import load_dotenv 
 import uuid
 
-client = genai.Client(api_key="AIzaSyDz5i8_qgU0oOAjlHEC0t1NPf1PPhZn7Gg")
+client = genai.Client()
 
 load_dotenv() # This searches for the .env file
 api_key = os.getenv("GEMINI_API_KEY")
