@@ -23,10 +23,9 @@ from PIL import Image
 from dotenv import load_dotenv 
 import uuid
 
-# The client will automatically look for the GEMINI_API_KEY 
 client = genai.Client()
 
-load_dotenv() # This searches for the .env file
+load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 print(f"DEBUG: My API key is found: {api_key is not None}")
