@@ -2,133 +2,143 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaVault | Studio Dashboard</title>
+    <title>Media Vault | Week 8</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --accent-ai: #00f2ff;
-            --text-main: #e6edf3;
-            --text-dim: #8b949e;
+            --bg-color: #f5f7f9;
+            --card-bg: #ffffff;
+            --accent-primary: #8b8b8b; 
+            --accent-secondary: #dcdde1;
+            --text-main: #2f3640;
+            --text-dim: #7f8c8d;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            padding: 40px;
+            font-family: 'Inter', sans-serif;
+            margin: 0; padding: 0;
         }
 
-        .container { max-width: 1200px; margin: 0 auto; }
-        
-        h1 { font-weight: 200; letter-spacing: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
-        
-        /* Buttons */
-        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; font-size: 0.9rem; transition: 0.3s; }
-        .btn-ai { background: var(--accent-ai); color: black; }
-        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 40px; }
 
-        /* Grid */
-        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; width: 100%; padding: 20px 0; }
-        .asset-card { background: var(--card-bg); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 20px; position: relative; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .asset-card:hover { transform: translateY(-10px); border-color: var(--accent-ai); background: rgba(255, 255, 255, 0.08); }
+        /* Forces all buttons to have the exact same font size */
+        .btn { 
+            padding: 10px 22px; 
+            border-radius: 10px; 
+            border: 1px solid var(--accent-secondary); 
+            background: white;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.85rem; 
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: 0.2s;
+        }
 
-        .asset-preview { height: 200px; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 15px; }
-        .asset-preview img, .asset-preview video { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+        .btn-ai { background: var(--accent-primary); color: white; border: none; }
 
-        /* AI Tags */
-        .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .ai-tag { background: rgba(0, 242, 255, 0.05); color: #00f2ff; border: 1px solid rgba(0, 242, 255, 0.2); padding: 2px 8px; border-radius: 10px; font-size: 10px; text-decoration: none; }
+        .assets-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+            gap: 25px; 
+            margin-top: 30px;
+        }
 
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13,17,23,0.9); z-index: 99999; flex-direction: column; justify-content: center; align-items: center; }
+        .asset-card { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 15px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .asset-preview { 
+            height: 200px; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            background: #f8f9fa; 
+            margin-bottom: 12px;
+        }
+
+        .asset-preview img, .asset-preview video { width: 100%; height: 100%; object-fit: cover; }
+
+        .ai-tag {
+            background: #f1f2f6;
+            color: #57606f;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        #loading-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.9); z-index: 9999; 
+            flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay">
-        <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-left-color: #00f2ff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <div style="border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
         <p>Processing Vault...</p>
     </div>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
             <h1>MEDIA VAULT ✨</h1>
-            <button onclick="toggleUpload()" class="btn btn-ai">➕ Add New Asset</button>
+            <button onclick="toggleUpload()" class="btn btn-ai">+ Add New Asset</button>
         </div>
 
-        <div id="upload-panel" style="display: none; background: rgba(255,255,255,0.03); border: 1px dashed var(--accent-ai); padding: 25px; border-radius: 20px; margin: 20px 0;">
-            <form action="/upload/" method="post" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <input type="text" name="name" placeholder="Asset Name" required style="padding: 12px; background: #000; color: white; border: 1px solid #333; border-radius: 8px;">
-                <input type="text" name="location" placeholder="Location" style="padding: 12px; background: #000; color: white; border: 1px solid #333; border-radius: 8px;">
-                <select name="category_id" required style="padding: 12px; background: #000; color: white; border: 1px solid #333; border-radius: 8px;">
-                    {% for cat in categories %} <option value="{{ cat.id }}">{{ cat.name }}</option> {% endfor %}
-                </select>
-                <input type="file" name="files" multiple required style="color: #8b949e;">
-                <button type="submit" class="btn btn-ai" style="grid-column: span 2;">🚀 Start Bulk Upload</button>
+        <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+            <form action="/" method="get" style="flex-grow:1; display:flex; gap:10px;">
+                <input type="text" name="search" value="{{ search_term or '' }}" placeholder="Search..." style="flex-grow:1; padding:10px; border-radius:10px; border:1px solid var(--accent-secondary);">
+                <button type="submit" class="btn">Search</button>
+            </form>
+            <form action="/add-category/" method="post" style="display:flex; gap:5px;">
+                <input type="text" name="name" placeholder="New folder..." required style="padding:10px; border-radius:10px; border:1px solid var(--accent-secondary);">
+                <button type="submit" class="btn btn-ai">+</button>
             </form>
         </div>
 
-        <div style="display: flex; gap: 15px; margin: 30px 0; align-items: center; flex-wrap: wrap;">
-            <form action="/" method="get" style="flex-grow: 1; display: flex; gap: 10px;">
-                <input type="text" name="search" placeholder="Search by name or #tag..." value="{{ search_term or '' }}" style="flex-grow: 1; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); color: white; border: 1px solid #333;">
-                <button type="submit" class="btn btn-outline">🔍</button>
-            </form>
-
-            <form action="/add-category/" method="post" style="display: flex; gap: 5px;">
-                <input type="text" name="name" placeholder="New Folder..." required style="padding: 8px 15px; border-radius: 20px; background: #000; color: white; border: 1px solid var(--accent-ai);">
-                <button type="submit" class="btn btn-ai" style="border-radius: 50%; width: 35px; height: 35px; padding: 0;">+</button>
-            </form>
-        </div>
-
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-            <a href="/" class="btn" style="border-radius: 20px; background: {{ 'rgba(0,242,255,0.2)' if not active_cat else 'rgba(255,255,255,0.05)' }}; color: white; border: 1px solid {{ 'var(--accent-ai)' if not active_cat else '#333' }};">All</a>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 40px;">
+            <a href="/" class="btn" style="{{ 'background: var(--accent-primary); color: white;' if not active_cat }}">All</a>
             {% for cat in categories %}
-            <div style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid {{ 'var(--accent-ai)' if active_cat == cat.id else '#333' }}; border-radius: 20px; padding-left: 15px;">
-                <a href="/?category_id={{ cat.id }}" style="text-decoration: none; color: white; font-size: 0.85rem;">{{ cat.name }}</a>
-                <form action="/delete-category/{{ cat.id }}" method="post" style="margin:0;">
-                    <button type="submit" onclick="return confirm('Delete category?')" style="background:none; border:none; color:#ff4d4d; cursor:pointer; padding: 10px;">✕</button>
-                </form>
-            </div>
+                <div style="display:flex; align-items:center; background:white; border:1px solid var(--accent-secondary); border-radius:30px; padding-left:12px;">
+                    <a href="/?category_id={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:0.8rem;">{{ cat.name }}</a>
+                    <form action="/delete-category/{{ cat.id }}" method="post" style="margin:0;">
+                        <button type="submit" style="background:none; border:none; color:red; cursor:pointer; padding:8px;">✕</button>
+                    </form>
+                </div>
             {% endfor %}
-        </div>
-
-        <div id="bulk-actions-bar" style="display: none; background: rgba(255,77,77,0.1); border: 1px solid #ff4d4d; padding: 15px; border-radius: 15px; margin-bottom: 25px; justify-content: space-between; align-items: center;">
-            <span style="color: white;">Selected: <strong id="selected-count">0</strong> items</span>
-            <button onclick="submitBulkDelete()" class="btn" style="background: #ff4d4d; color: white;">🗑️ Delete Selected</button>
         </div>
 
         <div class="assets-grid">
             {% for asset in assets %}
             <div class="asset-card">
-                <input type="checkbox" name="selected_assets" value="{{ asset.id }}" class="asset-checkbox" style="position: absolute; top: 15px; left: 15px; z-index: 10; width: 22px; height: 22px; cursor: pointer;">
-                
                 <div class="asset-preview">
                     {% if asset.file_path.lower().endswith(('.mp4', '.mov')) %}
                         <video muted loop onmouseover="this.play()" onmouseout="this.pause()">
                             <source src="/static/uploads/{{ asset.file_path }}" type="video/mp4">
                         </video>
                     {% else %}
-                        <img src="/static/uploads/{{ asset.file_path }}" onclick="openLightbox(this.src, '{{ asset.name }}')">
+                        <img src="/static/uploads/{{ asset.file_path }}">
                     {% endif %}
                 </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1rem;">{{ asset.name }}</h3>
-                        <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">📍 {{ asset.location or 'Vault' }}</p>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;">✏️</button>
-                        <button onclick="confirmDelete('/delete/{{ asset.id }}')" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;">🗑️</button>
-                    </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <h3 style="margin:0; font-size:1rem;">{{ asset.name }}</h3>
+                    <button onclick="confirmDelete('/delete/{{ asset.id }}')" style="background:none; border:none; cursor:pointer;">🗑️</button>
                 </div>
-
-                {% if asset.ai_tags and asset.ai_tags != 'no tags' %}
-                <div class="tag-container">
+                
+                {% if asset.ai_tags %}
+                <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
                     {% for tag in asset.ai_tags.split(',') %}
-                    <span class="ai-tag">#{{ tag.strip() }}</span>
+                        <span class="ai-tag">#{{ tag.strip() }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -136,66 +146,33 @@
             {% endfor %}
         </div>
 
-        <div style="margin-top: 50px; border-top: 1px solid #333; padding-top: 20px; display: flex; gap: 10px;">
-            <a href="/export-vault" onclick="showLoader()" class="btn btn-outline">📤 Export Vault (.zip)</a>
-            <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:inline;">
-                <input type="file" id="zip-input" name="file" accept=".zip" style="display:none;" onchange="this.form.submit(); showLoader();">
-                <button type="button" onclick="document.getElementById('zip-input').click()" class="btn btn-outline">📥 Import Vault</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="edit-modal" style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
-        <div style="background:#21262d; padding:25px; border-radius:15px; border:1px solid #333; width:400px;">
-            <h3 style="margin-top:0;">✏️ Edit Asset</h3>
-            <form id="edit-form" method="POST">
-                <input type="text" name="new_name" id="edit-name" placeholder="Title" required style="width:100%; padding:10px; margin-bottom:10px; background:#000; color:white; border:1px solid #333; border-radius:8px;">
-                <input type="text" name="new_location" id="edit-location" placeholder="Location" style="width:100%; padding:10px; margin-bottom:15px; background:#000; color:white; border:1px solid #333; border-radius:8px;">
-                <select name="new_category_id" id="edit-category" style="width:100%; padding:10px; margin-bottom:15px; background:#000; color:white; border:1px solid #333; border-radius:8px;">
-                    {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
-                </select>
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
-                    <button type="button" onclick="closeEditModal()" class="btn btn-outline">Cancel</button>
-                    <button type="submit" class="btn btn-ai">Save</button>
-                </div>
+        <div style="margin-top: 50px; display: flex; gap: 20px; justify-content: center;">
+            <a href="/export-vault" class="btn" style="width:180px;">📤 Export Vault</a>
+            <button type="button" onclick="document.getElementById('zip-input').click()" class="btn" style="width:180px;">📥 Import Vault</button>
+            <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
+                <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit()">
             </form>
         </div>
     </div>
 
     <script>
         function toggleUpload() {
-            const panel = document.getElementById('upload-panel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            const name = prompt("Enter asset name:");
+            if (name) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.onchange = _ => {
+                    const formData = new FormData();
+                    formData.append('file', input.files[0]);
+                    formData.append('name', name);
+                    fetch('/upload/', { method: 'POST', body: formData }).then(() => location.reload());
+                };
+                input.click();
+            }
         }
-
-        function showLoader() { document.getElementById('loading-overlay').style.display = 'flex'; }
-
-        // Bulk Actions
-        const checkboxes = document.querySelectorAll('.asset-checkbox');
-        checkboxes.forEach(cb => {
-            cb.addEventListener('change', () => {
-                const checked = document.querySelectorAll('.asset-checkbox:checked');
-                document.getElementById('selected-count').innerText = checked.length;
-                document.getElementById('bulk-actions-bar').style.display = checked.length > 0 ? 'flex' : 'none';
-            });
-        });
-
-        async function submitBulkDelete() {
-            if(!confirm("Delete selected?")) return;
-            const ids = Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(cb => cb.value);
-            const response = await fetch('/bulk-delete/', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({asset_ids: ids})});
-            if(response.ok) window.location.reload();
+        function confirmDelete(url) {
+            if (confirm("Delete this asset?")) { window.location.href = url; }
         }
-
-        function openEditModal(id, name, loc, catId) {
-            document.getElementById('edit-modal').style.display = 'flex';
-            document.getElementById('edit-form').action = `/edit/${id}`;
-            document.getElementById('edit-name').value = name;
-            document.getElementById('edit-location').value = loc;
-            document.getElementById('edit-category').value = catId;
-        }
-        function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
-        function confirmDelete(url) { if(confirm("Delete this asset?")) window.location.href = url; }
     </script>
 </body>
 </html>

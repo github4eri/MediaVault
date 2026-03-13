@@ -1,10 +1,11 @@
+import os
 from google import genai  #new
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Depends, Form  
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session                   
 from database import SessionLocal, engine           
 import models
-import os
 import shutil
 from datetime import datetime
 from fastapi import File, UploadFile
@@ -19,14 +20,17 @@ from pydantic import BaseModel
 import zipfile
 import io
 from fastapi.responses import StreamingResponse
-from PIL import Image 
-from dotenv import load_dotenv 
+from PIL import Image  
 import uuid
 
-client = genai.Client()
-
+# 1. Load the .env file
 load_dotenv()
+
+# 2. Get the key from the environment
 api_key = os.getenv("GEMINI_API_KEY")
+
+# 3. Explicitly pass the key to the client
+client = genai.Client(api_key=api_key)
 
 print(f"DEBUG: My API key is found: {api_key is not None}")
 
