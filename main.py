@@ -22,6 +22,8 @@ import io
 from fastapi.responses import StreamingResponse
 from PIL import Image  
 import uuid
+from fastapi import Body
+from models import DBMediaAsset
 
 # 1. Load the .env file
 load_dotenv()
@@ -220,12 +222,33 @@ async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
 class BulkDeleteRequest(BaseModel):
     asset_ids: List[int]
 
+
 @app.post("/bulk-delete")
-async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(database.get_db)):
-    # Delete all assets whose ID is in the list we just sent
-    db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id.in_(request.asset_ids)).delete(synchronize_session=False)
-    db.commit()
-    return {"message": "Successfully deleted items"}
+async def bulk_delete(selected_assets: list[int], db: Session = Depends(get_db)):
+    try:
+        print(f"DEBUG: Attempting to bulk delete IDs: {selected_assets}")
+        
+        for asset_id in selected_assets:
+            # 🎯 Using the correct class name: DBMediaAsset
+            asset = db.query(DBMediaAsset).filter(DBMediaAsset.id == asset_id).first()
+            
+            if asset:
+                # 1. Delete the physical file
+                file_path = f"static/uploads/{asset.file_path}"
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                
+                # 2. Delete the database record
+                db.delete(asset)
+        
+        db.commit()
+        print("DEBUG: Bulk delete successful!")
+        return {"status": "success"}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"SYSTEM ERROR: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.on_event("startup")
 def startup_populate_categories():
