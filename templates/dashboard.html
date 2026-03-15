@@ -103,59 +103,61 @@
     </div>
 
     <div class="assets-grid">
-        {% for asset in assets %}  
-        <div class="asset-card">
-            <input type="checkbox" value="{{ asset.id }}" class="asset-checkbox" onchange="updateBulkBar()" style="position: absolute; top: 15px; left: 15px; z-index: 10; width: 20px; height: 20px; cursor: pointer;">
+        {% for asset in assets %} <div class="asset-card" style="display: flex; flex-direction: column; height: auto; min-height: 320px; position: relative;">
+    
+            <input type="checkbox" value="{{ asset.id }}" class="asset-checkbox" onchange="updateBulkBar()" 
+                   style="position: absolute; top: 12px; left: 12px; z-index: 10; width: 20px; height: 20px; cursor: pointer;">
             
-            <div style="position: absolute; top: 15px; right: 15px; z-index: 10;">
-                <span style="background: rgba(255,255,255,0.9); color: var(--accent-primary); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; border: 1px solid var(--accent-secondary); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    📁 {{ asset.category.name if asset.category else 'Vault' }}
-                </span>
-            </div>
-
             <div class="asset-preview">
                 {% if asset.file_path.lower().endswith(('.mp4', '.mov')) %}
                     <video muted loop onmouseover="this.play()" onmouseout="this.pause()">
                         <source src="/static/uploads/{{ asset.file_path }}">
                     </video>
                 {% else %}
-                    <img src="/static/uploads/{{ asset.file_path }}">
+                    <img src="/static/uploads/{{ asset.file_path }}" alt="{{ asset.name }}">
                 {% endif %}
             </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <h3 style="margin:0; font-size:15px; color: var(--text-main);">{{ asset.name }}</h3>
-                    <span style="font-size: 11px; color: var(--accent-primary); font-weight: bold;">
-                        {{ asset.category.name if asset.category else 'Vault' }}
+    
+            <div style="display:flex; justify-content:space-between; align-items:start; padding-bottom: 10px;">
+                <div style="max-width: 70%;">
+                    <h3 style="margin:0; font-size:14px; color: var(--text-main); line-height: 1.2;">{{ asset.name }}</h3>
+                    <span style="font-size: 10px; color: var(--accent-primary); font-weight: 800; text-transform: uppercase;">
+                        {{ asset.category.name if asset.category else 'General' }}
                     </span>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}')" style="background:none; border:none; cursor:pointer; font-size:1.1rem;">✏️</button>
-                    <a href="/delete/{{ asset.id }}" onclick="return confirm('Delete?')" style="text-decoration:none; font-size:1.1rem;">🗑️</a>
+                
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
+                            style="background:none; border:none; cursor:pointer; font-size:16px;">✏️</button>
+                    <a href="/delete/{{ asset.id }}" onclick="return confirm('Delete permanently?')" 
+                       style="text-decoration:none; font-size:16px;">🗑️</a>
                 </div>
             </div>
-
-            {% if asset.ai_tags and asset.ai_tags.strip() != "" and asset.ai_tags.strip() != "no tags" %}
-            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:5px; border-top: 1px dashed #eee; padding-top:10px;">
-                {% for tag in asset.ai_tags.split(',') %}
-                    {% if tag.strip() != "ai-processing-skipped" %}
-                        <span class="ai-tag">#{{ tag.strip() }}</span>
+            
+            <div style="margin-top:auto; padding-top:10px; border-top: 1px dashed #eee;">
+                <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    {% if asset.ai_tags and asset.ai_tags.strip() != "no tags" %}
+                        {% for tag in asset.ai_tags.split(',') %}
+                            <span class="ai-tag" style="background: #f1f2f6; color: #57606f; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                                #{{ tag.strip() }}
+                            </span>
+                        {% endfor %}
                     {% else %}
-                        <span style="font-size: 9px; color: var(--text-dim); font-style: italic;">AI processing pending...</span>
+                        <span style="font-size: 10px; color: #bdc3c7; font-style: italic;">No AI labels yet</span>
                     {% endif %}
-                {% endfor %}
+                </div>
             </div>
-            {% endif %}
-        </div> 
-        {% endfor %} 
+    
+        </div> {% endfor %} 
     </div>
 
-    <div style="margin-top: 80        px; display: flex; gap: 20px; justify-content: center; border-top: 1px solid #eee; padding-top: 40px;">
-        <a href="/export-vault" onclick="showLoader()" class="btn" style="width:200px;">📤 Export Vault</a>
-        <button onclick="document.getElementById('zip-input').click()" class="btn" style="width:200px;">📥 Import Vault</button>
+    <div style="margin-top: 80px; display: flex; gap: 20px; justify-content: center; border-top: 1px solid #eee; padding-top: 40px;">
+        <a href="/export-vault" class="btn" style="width:200px;">📤 Export Vault (Download)</a>
+    
+        <button onclick="document.getElementById('zip-input').click()" class="btn" style="width:200px;">📥 Import Vault (Upload ZIP)</button>
+        
         <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
-            <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit(); showLoader();">
+            <input type="file" id="zip-input" name="file" accept=".zip" onchange="showLoader(); this.form.submit();">
         </form>
     </div>
 </div>
@@ -178,52 +180,79 @@
 </div>
 
 <script>
+    // 🌀 Loader Control
     function showLoader() { document.getElementById('loading-overlay').style.display = 'flex'; }
+    function hideLoader() { document.getElementById('loading-overlay').style.display = 'none'; }
+
+    // Edit Logic
+    function openEditModal(id, name, location, catId) {
+        const modal = document.getElementById('edit-modal'); // Make sure you have an edit-modal div!
+        if (!modal) {
+            console.error("Edit modal div not found!");
+            return;
+        }
+        document.getElementById('edit-form').action = '/edit/' + id;
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-location').value = location;
+        document.getElementById('edit-category').value = catId;
+        modal.style.display = 'flex';
+    }
+
+    // 🔘 Bulk Delete Logic
     function toggleAll(source) {
         document.querySelectorAll('.asset-checkbox').forEach(cb => cb.checked = source.checked);
         updateBulkBar();
     }
     function updateBulkBar() {
-        const checked = document.querySelectorAll('.asset-checkbox:checked');
-        document.getElementById('bulk-bar').style.display = checked.length > 0 ? 'flex' : 'none';
-        document.getElementById('sel-count').innerText = checked.length;
+        const count = document.querySelectorAll('.asset-checkbox:checked').length;
+        document.getElementById('bulk-bar').style.display = count > 0 ? 'flex' : 'none';
+        document.getElementById('sel-count').innerText = count;
     }
+
     async function submitBulkDelete() {
-    // 1. Grab all checked items
-    const checked = document.querySelectorAll('.asset-checkbox:checked');
-    // 2. Turn them into a list of numbers
-    const ids = Array.from(checked).map(cb => parseInt(cb.value));
-
-    if (ids.length === 0) return;
-
-    if (confirm(`Delete ${ids.length} items permanently?`)) {
-        showLoader();
+        const ids = Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(cb => cb.value);
+        if(!confirm(`Delete ${ids.length} items?`)) return;
         
-        try {
-            const response = await fetch('/bulk-delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json' // 🛑 Tell the server: "This is JSON!"
-                },
-                body: JSON.stringify(ids) // 📦 Send just the list [1, 2, 3]
-            });
-
-            if (response.ok) {
-                location.reload();
-            } else {
-                const errorData = await response.json();
-                console.error("Bulk Delete Error:", errorData);
-                alert("Bulk delete failed. Check the terminal.");
-                document.getElementById('loading-overlay').style.display = 'none';
-            }
-        } catch (err) {
-            console.error("Network error:", err);
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
+        showLoader();
+        const params = new URLSearchParams();
+        ids.forEach(id => params.append('selected_assets', id));
+        
+        const resp = await fetch('/bulk-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        });
+        if(resp.ok) location.reload();
+        else { alert("Delete failed"); hideLoader(); }
     }
-}
 </script>
-
+<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:20px; width:380px; box-shadow: var(--shadow);">
+        <h2 style="margin-top:0; color: var(--accent-primary);">Edit Asset</h2>
+        <form id="edit-form" method="post">
+            <label style="font-size: 0.8rem; color: var(--text-dim);">Asset Title</label>
+            <input type="text" id="edit-name" name="new_name" required 
+                   style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
+            
+            <label style="font-size: 0.8rem; color: var(--text-dim);">Location</label>
+            <input type="text" id="edit-location" name="location" 
+                   style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
+            
+            <label style="font-size: 0.8rem; color: var(--text-dim);">Folder</label>
+            <select id="edit-category" name="new_category_id" required 
+                    style="width:100%; padding:10px; margin-bottom:25px; border-radius:8px; border:1px solid #ddd; background: #fff;">
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('edit-modal').style.display='none'" class="btn">Cancel</button>
+                <button type="submit" class="btn btn-ai">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>
 

@@ -40,6 +40,9 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"), http_options={'api_ve
 
 app = FastAPI(title="MediaVault Pro")
 
+# 🎯 THE KEY LINE: This "mounts" the static folder so the browser can reach it
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Create the new tables
@@ -151,42 +154,36 @@ async def upload(
     files: List[UploadFile] = File(...), 
     name: str = Form(...), 
     location: str = Form(None), 
-    category_id: int = Form(...), # 👈 This matches HTML dropdown
-    db: Session = Depends(database.get_db)
+    category_id: int = Form(...), 
+    db: Session = Depends(get_db) # Ensure this matches your import!
 ):
     for file in files:
-        # 1. Start with a default "Safety" value
         ai_tags = "no tags"
         
         file_extension = os.path.splitext(file.filename)[1].lower()
         unique_filename = f"{uuid.uuid4().hex}{file_extension}"
-        save_path = os.path.join(UPLOAD_DIR, unique_filename)
+        save_path = os.path.join("static/uploads", unique_filename) # 🎯 Direct path
 
         with open(save_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 2. Only attempt AI analysis if it's an image 🖼️
+        # --- AI Analysis Block ---
         if file_extension in [".jpg", ".jpeg", ".png", ".webp"]:
             try:
-                # 🖼️ open the image and send it to the new client
                 from PIL import Image
                 img = Image.open(save_path)
-                
-                # New "Modern" call syntax:
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=["Describe this image with 3 to 5 simple comma-separated tags.", img]
                 )
-                
                 ai_tags = response.text.strip().lower()
             except Exception as e:
                 print(f"DEBUG: AI Vision failed: {e}")
-                # Note: ai_tags remains "no tags", so the database save won't crash!
-                        
-        # --- C. Save to Database (Including ai_tags!) ---
+
+        # --- DATABASE SAVE ---
         new_asset = models.DBMediaAsset(
             name=name,
-            file_path=file.filename, 
+            file_path=unique_filename, # 🎯 FIXED: Must match the name we actually saved!
             ai_tags=ai_tags,
             location=location,
             category_id=category_id
