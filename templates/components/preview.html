@@ -1,0 +1,10 @@
+<div class="asset-preview" style="flex-shrink: 0;">
+       {% if asset.file_path.lower().endswith(('.mp4', '.mov')) %}
+           <video muted loop onmouseover="this.play()" onmouseout="this.pause()" style="width:100%; height:100%; object-fit:cover;">
+               <source src="/static/uploads/{{ asset.file_path }}">
+           </video>
+       {% else %}
+           <img src="/static/uploads/{{ asset.file_path }}" alt="{{ asset.name }}" style="width:100%; height:100%; object-fit:cover;">
+       {% endif %}
+   </div>
+   

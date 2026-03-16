@@ -108,27 +108,28 @@ async def add_category(name: str = Form(...), db: Session = Depends(database.get
     return RedirectResponse(url="/", status_code=303)
 
 # 3Grouping the Edit route with your other Admin tasks
-@app.post("/edit/{asset_id}", tags=["Admin"]) 
+@app.post("/edit")
 async def edit_asset(
-    asset_id: int, 
-    new_name: str = Form(...), 
-    new_location: str = Form(None),
-    new_category_id: int = Form(...), # <--- ADD THIS LINE
+    id: int = Form(...), 
+    name: str = Form(...), 
+    location: str = Form(...), 
+    category_id: int = Form(...), 
     db: Session = Depends(database.get_db)
 ):
-    # 1. Find the specific photo by its ID
-    asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    # 1. Find the asset in the database
+    db_asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == id).first()
     
-    if asset:
-        # 2. Update the fields with the new info from the form
-        asset.name = new_name
-        asset.location = new_location
-        asset.category_id = new_category_id # <--- ADD THIS LINE
+    if db_asset:
+        # 2. Update the fields with the new info
+        db_asset.name = name
+        db_asset.location = location
+        db_asset.category_id = category_id
         
-        # 3. Save to the database
+        # 3. Save to database
         db.commit()
+        print(f"DEBUG: Asset {id} updated successfully!")
     
-    # 4. Send the user back to the dashboard to see the changes
+    # 4. Send the user back to the dashboard
     return RedirectResponse(url="/", status_code=303)
 
 #4 ADMIN: CREATE A COLLECTION (The Folder)
@@ -216,32 +217,31 @@ async def delete_asset(asset_id: int, db: Session = Depends(database.get_db)):
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/", status_code=303)
 
+# 1. This class defines the "Suitcase"
 class BulkDeleteRequest(BaseModel):
     asset_ids: List[int]
 
-
+# 2. This is the "Post Office" that receives it
 @app.post("/bulk-delete")
-async def bulk_delete(selected_assets: list[int], db: Session = Depends(get_db)):
+async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(database.get_db)):
     try:
-        print(f"DEBUG: Attempting to bulk delete IDs: {selected_assets}")
+        print(f"DEBUG: Attempting to bulk delete IDs: {request.asset_ids}")
         
-        for asset_id in selected_assets:
-            # 🎯 Using the correct class name: DBMediaAsset
-            asset = db.query(DBMediaAsset).filter(DBMediaAsset.id == asset_id).first()
+        for asset_id in request.asset_ids:
+            # Note: Using 'models.DBMediaAsset' to match your previous setup
+            asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
             
             if asset:
-                # 1. Delete the physical file
-                file_path = f"static/uploads/{asset.file_path}"
+                # Delete physical file
+                file_path = os.path.join("static/uploads", asset.file_path)
                 if os.path.exists(file_path):
                     os.remove(file_path)
                 
-                # 2. Delete the database record
+                # Delete database record
                 db.delete(asset)
         
         db.commit()
-        print("DEBUG: Bulk delete successful!")
         return {"status": "success"}
-        
     except Exception as e:
         db.rollback()
         print(f"SYSTEM ERROR: {e}")

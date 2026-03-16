@@ -1,0 +1,12 @@
+<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
+    {% if asset.ai_tags %}
+        {% for tag in asset.ai_tags.split(',') %}
+            <span style="background: #e8f0fe; color: #1967d2; font-size: 11px; padding: 3px 8px; border-radius: 10px; border: 1px solid #d2e3fc; font-weight: 500;">
+                #{{ tag.strip() }}
+            </span>
+        {% endfor %}
+    {% else %}
+        <span style="color: #999; font-size: 11px; font-style: italic;">Analyzing...</span>
+    {% endif %}
+</div>
+   

@@ -15,11 +15,10 @@ class DBMediaAsset(Base):
     __tablename__ = "media_assets"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    location = Column(String)
     file_path = Column(String)
-    # 📍 ADD THESE TWO LINES IF THEY ARE MISSING:
-    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"))
-    created_at = Column(String, default=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
+    location = Column(String)
+    tags = Column(String, nullable=True) # 👈 ADD THIS LINE
+    category_id = Column(Integer, ForeignKey("categories.id"))
 
     category = relationship("Category", back_populates="assets")
     ai_tags = Column(String, nullable=True)
