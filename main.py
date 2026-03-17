@@ -32,11 +32,10 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 # 3. Explicitly pass the key to the client
-client = genai.Client(api_key=api_key)
-
-print(f"DEBUG: My API key is found: {api_key is not None}")
-
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"), http_options={'api_version': 'v1'})
+# 🔍 RUN THIS ONCE TO SEE YOUR AVAILABLE MODELS IN THE TERMINAL
+for m in client.models.list():
+    print(f"AVAILABLE MODEL: {m.name}")
 
 app = FastAPI(title="MediaVault Pro")
 
@@ -113,23 +112,19 @@ async def edit_asset(
     id: int = Form(...), 
     name: str = Form(...), 
     location: str = Form(...), 
-    category_id: int = Form(...), 
+    category_id: int = Form(...),
+    ai_tags: str = Form(None), # 🎯 Ensure this matches your Modal input name
     db: Session = Depends(database.get_db)
 ):
-    # 1. Find the asset in the database
     db_asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == id).first()
     
     if db_asset:
-        # 2. Update the fields with the new info
         db_asset.name = name
         db_asset.location = location
         db_asset.category_id = category_id
-        
-        # 3. Save to database
+        db_asset.ai_tags = ai_tags # 🎯 Save to the ai_tags column
         db.commit()
-        print(f"DEBUG: Asset {id} updated successfully!")
     
-    # 4. Send the user back to the dashboard
     return RedirectResponse(url="/", status_code=303)
 
 #4 ADMIN: CREATE A COLLECTION (The Folder)
@@ -168,31 +163,27 @@ async def upload(
         with open(save_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # --- AI Analysis Block ---
+     # --- AI Analysis Block ---
+        ai_tags = "limit-reached" # 🎯 Default if the AI is "exhausted"
+
         if file_extension in [".jpg", ".jpeg", ".png", ".webp"]:
             try:
-                from PIL import Image
+                # 1. Open the image
                 img = Image.open(save_path)
+                                
+                # 2. Call the AI (The response and its arguments stay together)
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=["Describe this image with 3 to 5 simple comma-separated tags.", img]
+                    model="gemini-2.5-flash", 
+                    contents=["List 3 to 5 simple comma-separated tags.", img]
                 )
-                ai_tags = response.text.strip().lower()
+                
+                if response and hasattr(response, 'text'):
+                    ai_tags = response.text.strip().lower()
+                    print(f"DEBUG: AI success: {ai_tags}")
+                
             except Exception as e:
                 print(f"DEBUG: AI Vision failed: {e}")
-
-        # --- DATABASE SAVE ---
-        new_asset = models.DBMediaAsset(
-            name=name,
-            file_path=unique_filename, # 🎯 FIXED: Must match the name we actually saved!
-            ai_tags=ai_tags,
-            location=location,
-            category_id=category_id
-        )
-        db.add(new_asset)
-    
-    db.commit()
-    return RedirectResponse(url="/", status_code=303)
+                ai_tags = "quota-empty" # 🎯 This tells you why on the dashboard
 
 @app.post("/delete-category/{cat_id}")
 async def delete_category(
@@ -303,16 +294,17 @@ async def import_zip(file: UploadFile = File(...), db: Session = Depends(databas
                 target.write(source.read())
 
             # 4. Add to Database
-            new_asset = models.DBMediaAsset(
-                name=filename,
-                file_path=filename,
-                location="Bulk Import",
-                category_id=1 # To make sure you have at least one category in DB.
-            )
-            db.add(new_asset)
-    
-    db.commit()
-    return RedirectResponse(url="/", status_code=303)
+            # --- DATABASE SAVE ---
+        new_asset = models.DBMediaAsset(
+            name=name,
+            file_path=unique_filename,
+            ai_tags=ai_tags, # 👈 1. IS THIS LINE HERE?
+            location=location,
+            category_id=category_id
+        )
+        db.add(new_asset) # 👈 2. IS THIS ADDING THE ASSET?
+        db.commit()      # 👈 3. IS THIS COMMITTING?
+        return RedirectResponse(url="/", status_code=303)
 
 @app.get("/export-vault")
 async def export_vault(db: Session = Depends(database.get_db)):
