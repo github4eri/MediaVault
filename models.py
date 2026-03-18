@@ -17,10 +17,7 @@ class DBMediaAsset(Base):
     name = Column(String)
     file_path = Column(String)
     location = Column(String)
-    
-    # 🎯 USE ONLY THIS ONE. Remove the line that says 'tags = ...'
-    ai_tags = Column(String, nullable=True) 
-    
+    ai_tags = Column(String, nullable=True)  
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", back_populates="assets")
     

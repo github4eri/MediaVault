@@ -84,7 +84,7 @@
         <a href="/" class="btn" style="border-radius: 30px; {{ 'background: var(--accent-primary); color: white;' if not active_cat }}">All</a>
         {% for cat in categories %}
         <div class="cat-chip" style="{{ 'border-color: var(--accent-primary);' if active_cat == cat.id }}">
-            <a href="/?category_id={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">{{ cat.name }}</a>
+            <a href="/?category_name={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">{{ cat.name }}</a>
             <form action="/delete-category/{{ cat.id }}" method="post" style="margin:0;">
                 <button type="submit" onclick="return confirm('Delete folder?')" style="background:none; border:none; color:#ff4757; cursor:pointer; padding:10px; font-weight:bold;">✕</button>
             </form>
@@ -146,7 +146,7 @@
         <form action="/upload/" method="post" enctype="multipart/form-data">
             <input type="text" name="name" placeholder="Title" required style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
             <input type="file" name="files" required style="margin-bottom:15px;">
-            <select name="category_id" required style="width:100%; padding:10px; margin-bottom:25px; border-radius:8px;">
+            <select name="category_name" required style="width:100%; padding:10px; margin-bottom:25px; border-radius:8px;">
                 {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
             </select>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -266,11 +266,18 @@ function clearSelection() {
             <input type="text" name="location" id="edit-location" style="width:100%; margin-bottom:15px;"><br>
             
             <label>Category:</label><br>
-            <select name="category_id" id="edit-category" style="width:100%; margin-bottom:20px;">
+            <select name="category_name">
                 {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    <option value="{{ cat.name }}">{{ cat.name }}</option>
                 {% endfor %}
             </select>
+            
+            {% for asset in assets %}
+                <div class="card">
+                    <img src="/static/uploads/{{ asset.file_path }}">
+                    <p>{{ asset.ai_tags }}</p>
+                </div>
+            {% endfor %}
             
             <div style="display:flex; gap:10px;">
                 <button type="submit" style="background:#2ecc71; color:white; border:none; padding:10px; flex:1; border-radius:5px; cursor:pointer;">Save Changes</button>
