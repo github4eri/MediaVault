@@ -2,8 +2,8 @@
        <h3 style="margin:0; font-size:14px; color: var(--text-main); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
            {{ asset.name }}
        </h3>
-       <span style="font-size: 10px; color: var(--accent-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-           {{ asset.category.name if asset.category else 'General' }}
-       </span>
+       <span class="badge bg-secondary">
+        📁 {{ asset.category.name if asset.category else "Uncategorized" }}
+    </span>
    </div>
    
