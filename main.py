@@ -18,6 +18,7 @@ import database
 import vision        # The Brain
 import database_ops  # The Clerk
 from database import engine, SessionLocal
+from pydantic import BaseModel
 
 # --- INITIALIZATION ---
 load_dotenv()
@@ -92,15 +93,46 @@ async def edit_asset(
 
 @app.post("/delete/{asset_id}")
 async def delete_asset(asset_id: int, db: Session = Depends(get_db)):
+    # 🕵️‍♂️ 1. Find the asset
     asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    
     if asset:
-        # Remove physical file
+        # 📂 2. PHYSICAL DELETE: Remove the file from static/uploads
         file_path = os.path.join("static/uploads", asset.file_path)
         if os.path.exists(file_path):
             os.remove(file_path)
+            print(f"DEBUG: Deleted file {file_path}")
+
+        # 🗑️ 3. DATABASE DELETE: Remove the record
         db.delete(asset)
         db.commit()
+        print(f"DEBUG: Deleted asset {asset_id} from DB")
+
     return RedirectResponse(url="/", status_code=303)
+    
+#bulk delete
+class BulkDeleteRequest(BaseModel):
+    asset_ids: List[int]
+
+@app.post("/bulk-delete")
+async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(get_db)):
+    try:
+        # 🕵️‍♂️ Find all assets in the list
+        assets = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id.in_(request.asset_ids)).all()
+        
+        for asset in assets:
+            # Physical delete
+            file_path = os.path.join("static/uploads", asset.file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            # Database delete
+            db.delete(asset)
+            
+        db.commit()
+        return {"status": "success", "message": f"Deleted {len(assets)} assets"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
 
 # --- 4. CATEGORIES ---
 @app.post("/add-category")
@@ -132,3 +164,50 @@ def startup_tasks():
         db.commit()
     db.close()
     
+@app.post("/delete-category/{cat_id}")
+async def delete_category(cat_id: int, db: Session = Depends(database.get_db)):
+    # Find it in the vault
+    category = db.query(models.Category).filter(models.Category.id == cat_id).first()
+    if category:
+        db.delete(category)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+# 1. The "Edit Page" - This opens your edit.html
+@app.get("/edit/{asset_id}")
+async def edit_page(request: Request, asset_id: int, db: Session = Depends(database.get_db)):
+    asset = database_ops.get_asset_by_id(db, asset_id)
+    categories = db.query(models.Category).all()
+    return templates.TemplateResponse("edit.html", {
+        "request": request, 
+        "asset": asset, 
+        "categories": categories
+    })
+
+# 2. The "Update Logic" - This saves the changes
+
+@app.post("/edit/{asset_id}")
+async def update_asset(
+    asset_id: int, 
+    name: str = Form(...), 
+    ai_tags: str = Form(...),
+    category_id: int = Form(...), 
+    db: Session = Depends(database.get_db)
+):
+    # 1. Find the asset in the vault using the ID from the URL
+    asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
+    
+    if asset:
+        # 🖊️ 2. Overwrite the old info with the new info from the form
+        asset.name = name
+        asset.ai_tags = ai_tags
+        asset.category_id = category_id # 👈 And this line!
+        
+        # 🔒 3. Lock it in!
+        db.commit()
+        print(f"DEBUG: Asset {asset_id} updated successfully!")
+    
+    # 🏠 4. Send the user back to the dashboard to see the changes
+    return RedirectResponse(url="/", status_code=303)
+
+

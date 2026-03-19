@@ -85,7 +85,7 @@
         {% for cat in categories %}
         <div class="cat-chip" style="{{ 'border-color: var(--accent-primary);' if active_cat == cat.id }}">
             <a href="/?category_name={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">{{ cat.name }}</a>
-            <form action="/delete-category/{{ cat.id }}" method="post" style="margin:0;">
+            <form action="/delete-category/{{ cat.id }}" method="post">
                 <button type="submit" onclick="return confirm('Delete folder?')" style="background:none; border:none; color:#ff4757; cursor:pointer; padding:10px; font-weight:bold;">✕</button>
             </form>
         </div>
@@ -146,9 +146,14 @@
         <form action="/upload/" method="post" enctype="multipart/form-data">
             <input type="text" name="name" placeholder="Title" required style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
             <input type="file" name="files" required style="margin-bottom:15px;">
-            <select name="category_name" required style="width:100%; padding:10px; margin-bottom:25px; border-radius:8px;">
-                {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
-            </select>
+            <div class="mb-3">
+                <label class="form-label">Select Category</label>
+                <select name="category_name" class="form-select" required>
+                    {% for cat in categories %}
+                        <option value="{{ cat.name }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
                 <button type="button" onclick="this.closest('#upload-modal').style.display='none'" class="btn">Cancel</button>
                 <button type="submit" class="btn btn-ai" onclick="showLoader()">Upload</button>

@@ -1,15 +1,14 @@
 <div style="display: flex; gap: 10px; align-items: center;">
-        <button onclick="openEditModal('{{ asset.id }}', '{{ asset.name }}', '{{ asset.location }}', '{{ asset.category_id }}')" 
-                style="background:none; border:none; cursor:pointer; font-size:18px; padding:0; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));"
-                title="Edit Asset">
-            ✏️
-        </button>
-        
-        <a href="/delete/{{ asset.id }}" 
-           onclick="return confirm('Delete permanently?')" 
-           style="text-decoration:none; font-size:18px;"
-           title="Delete Asset">
+    <a href="/edit/{{ asset.id }}" 
+    style="text-decoration: none; font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));" 
+    title="Edit Asset">
+    ✏️
+    </a>
+
+    <form action="/delete/{{ asset.id }}" method="post" style="display:inline;">
+        <button type="submit" style="background:none; border:none; cursor:pointer;" title="Delete Asset">
             🗑️
-        </a>
-    </div>
+        </button>
+    </form>
+</div>
    
