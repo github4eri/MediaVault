@@ -6,15 +6,24 @@ from dotenv import load_dotenv
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-def get_tags(image_path):
-    """Takes a path, returns comma-separated tags."""
+def analyze_image(image_path: str):
+    """
+    The Analyst: Uses the modern Gemini Client to generate tags.
+    """
     try:
+        # 📸 2. Open the image
         img = Image.open(image_path)
+        
+        # 🤖 3. Call the Gemini 1.5 Flash model
+        # Note: 'models.generate_content' is the syntax for the new genai Client
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=["List 3 to 5 simple comma-separated tags.", img]
+            model="gemini-1.5-flash",
+            contents=["Provide a comma-separated list of 5-10 descriptive tags for this image.", img]
         )
-        return response.text.strip().lower() if response.text else "no-tags"
+        
+        # 🧼 4. Return the text (cleanly)
+        return response.text.strip()
+
     except Exception as e:
-        print(f"VISION ERROR: {e}")
-        return "ai-error"
+        print(f"DEBUG: AI Specialist Error - {e}")
+        return "AI-Analysis-Unavailable"

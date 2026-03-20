@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request, Depends, Form, File, UploadFile, Body
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi import HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -38,42 +39,82 @@ def get_db():
 
 # --- 1. DASHBOARD ---
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, db: Session = Depends(get_db)):
-    assets = db.query(models.DBMediaAsset).all()
+async def index(
+    request: Request, 
+    search: str = None,           # 🔍 Captures ?search= from the URL
+    category: int = None,         # 📁 Captures ?category= from the URL
+    db: Session = Depends(get_db)
+):
+    # 1. Start with a "Base Query" (all assets)
+    query = db.query(models.DBMediaAsset)
+
+    # 2. Add a filter if the user is searching for text
+    if search:
+        # We use .ilike() for case-insensitive searching (e.g., 'Art' matches 'art')
+        query = query.filter(
+            (models.DBMediaAsset.name.ilike(f"%{search}%")) | 
+            (models.DBMediaAsset.ai_tags.ilike(f"%{search}%"))
+        )
+    
+    # 3. Add a filter if the user clicked a specific category
+    if category:
+        query = query.filter(models.DBMediaAsset.category_id == category)
+
+    # 4. Execute the final filtered query
+    assets = query.all()
     categories = db.query(models.Category).all()
+
+    # 5. Send everything to the dashboard
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
-        "categories": categories
+        "categories": categories,
+        "current_search": search  # We send this back so the search bar stays filled
     })
 
-# --- 2. UPLOAD & AI ---
+
+# ---  THE SECURITY RULES (Constants) ---
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+
+# --- THE UPLOAD & AI ROUTE ---
 @app.post("/upload/")
-async def upload(
-    request: Request, 
-    files: List[UploadFile] = File(...), 
-    name: str = Form(...), 
-    category_name: str = Form(...), 
-    db: Session = Depends(get_db)
+async def upload_media(
+    file: UploadFile = File(...),
+    category_name: str = Form(...),
+    db: Session = Depends(database.get_db)
 ):
-    # Ask the Clerk for the Category ID
+    # 🕵️‍♂️ 1. Update your "Guard" to allow mp4
+    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
+    file_ext = file.filename.split(".")[-1].lower()
+    
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported file.")
+
+    # 📂 2. Save the Physical File (Same as before)
+    upload_folder = "static/uploads"
+    file_path = os.path.join(upload_folder, file.filename)
+    with open(file_path, "wb+") as file_object:
+        file_object.write(file.file.read())
+
+    # 🧠 3. THE CONDITIONAL BRAIN
+    if file_ext == "mp4":
+        # 🎥 If it's a video, skip the AI and use "Portfolio Ready" tags
+        ai_description = "AI Motion Art, Video, Digital Creation"
+        print("DEBUG: Video detected. Skipping AI analysis.")
+    else:
+        # 📸 If it's an image, call the AI Analyst
+        try:
+            ai_description = vision.analyze_image(file_path)
+        except Exception as e:
+            ai_description = "AI-Analysis-Unavailable"
+
+    # 🗄️ 4. Register in Database (Same as before)
     cat_id = database_ops.get_or_create_category(db, category_name)
+    database_ops.create_asset(
+        db=db, name=file.filename, file_path=file.filename,
+        ai_tags=ai_description, category_id=cat_id
+    )
 
-    for file in files:
-        file_ext = os.path.splitext(file.filename)[1].lower()
-        unique_name = f"{uuid.uuid4().hex}{file_ext}"
-        save_path = os.path.join("static/uploads", unique_name)
-        
-        with open(save_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Ask the Brain for Tags
-        tags = vision.get_tags(save_path)
-
-        # Ask the Clerk to prepare the database entry
-        database_ops.create_media_asset(db, name, unique_name, tags, cat_id)
-
-    db.commit() # Save everything!
     return RedirectResponse(url="/", status_code=303)
 
 # --- 3. EDIT & DELETE ---
@@ -210,4 +251,25 @@ async def update_asset(
     # 🏠 4. Send the user back to the dashboard to see the changes
     return RedirectResponse(url="/", status_code=303)
 
+@app.get("/maintenance/cleanup")
+async def cleanup_orphaned_files(db: Session = Depends(database.get_db)):
+    # 1. Get all file names currently in the Database
+    db_files = [asset.file_path for asset in db.query(models.DBMediaAsset).all()]
+    
+    # 2. Get all file names currently in the Folder
+    upload_folder = "static/uploads"
+    folder_files = os.listdir(upload_folder)
+    
+    deleted_count = 0
+    for file_name in folder_files:
+        # If the file is in the folder but NOT in the database...
+        if file_name not in db_files and file_name != ".gitignore":
+            file_path = os.path.join(upload_folder, file_name)
+            try:
+                os.remove(file_path) # 🗑️ Delete it!
+                deleted_count += 1
+            except Exception as e:
+                print(f"Error deleting {file_name}: {e}")
+                
+    return {"status": "success", "message": f"Cleaned up {deleted_count} orphaned files."}
 
