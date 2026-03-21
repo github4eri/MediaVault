@@ -64,20 +64,40 @@
 </div>
 
 <div class="container">
-    <div class="header-bar">
+    <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
         <h1>MEDIA VAULT ✨</h1>
-        <button onclick="document.getElementById('upload-modal').style.display='flex'" class="btn btn-ai">+ Add New Asset</button>
+    
+        {% if request.cookies.get('is_logged_in') == 'true' %}
+            <div style="display: flex; gap: 10px;">
+                <button onclick="document.getElementById('upload-modal').style.display='flex'" class="btn btn-ai">
+                    + Add New Asset
+                </button>
+                
+                <a href="/logout" class="btn" style="background: #ff4757; color: white; text-decoration: none; padding: 10px 15px; border-radius: 10px; font-size: 0.9rem;">
+                    Sign Out
+                </a>
+            </div>
+        {% endif %}
     </div>
+    
+    {% if request.cookies.get('is_logged_in') == 'true' %}
+        {% include 'components/admin_tools.html' %}
+    {% endif %}
 
-    <div class="search-area">
+    <div class="search-area" style="display: flex; gap: 20px; align-items: center;">
         <form style="flex-grow: 1; display: flex; gap: 10px;">
-            <input type="text" name="search" placeholder="Search assets..." value="{{ search_term or '' }}" style="flex-grow: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
+            <input type="text" name="search" placeholder="Search assets..." value="{{ search_term or '' }}" 
+                   style="flex-grow: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
             <button type="submit" class="btn">Search</button>
         </form>
-        <form action="/add-category/" method="post" style="display: flex; gap: 5px;">
-            <input type="text" name="name" placeholder="New Folder" required style="width: 130px; padding: 10px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
-            <button type="submit" class="btn btn-ai" style="width: 42px;">+</button>
-        </form>
+
+        {% if request.cookies.get('is_logged_in') == 'true' %}
+            <form action="/add-category/" method="post" style="display: flex; gap: 5px;">
+                <input type="text" name="name" placeholder="New Folder" required 
+                       style="width: 130px; padding: 10px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
+                <button type="submit" class="btn btn-ai" style="width: 42px;">+</button>
+            </form>
+        {% endif %}
     </div>
 
     <div class="category-row">
@@ -133,15 +153,6 @@
         {% endfor %}
     </div>
 
-    <div style="margin-top: 80px; display: flex; gap: 20px; justify-content: center; border-top: 1px solid #eee; padding-top: 40px;">
-        <a href="/export-vault" class="btn" style="width:200px;">📤 Export Vault (Download)</a>
-    
-        <button onclick="document.getElementById('zip-input').click()" class="btn" style="width:200px;">📥 Import Vault (Upload ZIP)</button>
-        
-        <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
-            <input type="file" id="zip-input" name="file" accept=".zip" onchange="showLoader(); this.form.submit();">
-        </form>
-    </div>
 </div>
 
 <div id="upload-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">

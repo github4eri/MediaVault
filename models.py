@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean  
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -20,4 +20,11 @@ class DBMediaAsset(Base):
     ai_tags = Column(String, nullable=True)  
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", back_populates="assets")
-    
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String) # 🔒 never store the plain password!
+    is_active = Column(Boolean, default=True)    

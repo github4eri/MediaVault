@@ -21,6 +21,10 @@ import database_ops  # The Clerk
 from database import engine, SessionLocal
 from pydantic import BaseModel
 
+from fastapi import Response 
+import security # security.py is imported
+from fastapi import Cookie
+
 # --- INITIALIZATION ---
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
@@ -38,6 +42,71 @@ def get_db():
         db.close()
 
 # --- 1. DASHBOARD ---
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(database.get_db)
+):
+    # 🕵️‍♂️ What did the user type?
+    print(f"DEBUG: Attempting login for user: '{username}'")
+
+    user = db.query(models.User).filter(models.User.username == username).first()
+
+    if not user:
+        # 🕵️‍♂️ Did we even find the user?
+        print(f"DEBUG: User '{username}' NOT found in database.")
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username"})
+
+    # 🕵️‍♂️ Compare the keys
+    is_valid = security.verify_password(password, user.hashed_password)
+    print(f"DEBUG: Password match result: {is_valid}")
+
+    if not is_valid:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid password"})
+
+ 
+    # 🕵️‍♂️ 1. Find the user in the database
+    user = db.query(models.User).filter(models.User.username == username).first()
+
+    # 🕵️‍♂️ 2. Check if user exists AND if the password is correct
+    if not user or not security.verify_password(password, user.hashed_password):
+        # If wrong, send them back to login with an error message
+        return templates.TemplateResponse("login.html", {
+            "request": request, 
+            "error": "Invalid username or password"
+        })
+
+    # 🕵️‍♂️ 3. If correct, "Lock the Door" by setting a simple Cookie
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(key="is_logged_in", value="true") # This is our temporary "Key Card"
+    return response
+
+@app.get("/")
+async def dashboard(
+    request: Request, 
+    db: Session = Depends(database.get_db),
+    is_logged_in: str = Cookie(None) # 🕵️‍♂️ Look for the badge
+):
+    # 🚫 THE LOCK: If the badge is missing, redirect to login
+    if is_logged_in != "true":
+        return RedirectResponse(url="/login", status_code=303)
+
+    # ... (Keep your existing code to fetch assets and categories)
+    assets = db.query(models.DBMediaAsset).all()
+    categories = db.query(models.Category).all()
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, 
+        "assets": assets, 
+        "categories": categories
+    })
+
 @app.get("/", response_class=HTMLResponse)
 async def index(
     request: Request, 
@@ -79,10 +148,16 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 # --- THE UPLOAD & AI ROUTE ---
 @app.post("/upload/")
 async def upload_media(
+    request: Request,
     file: UploadFile = File(...),
     category_name: str = Form(...),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    is_logged_in: str = Cookie(None) # 🕵️‍♂️ Protect the upload too!
 ):
+    # 🚫 Only logged-in users can upload
+    if is_logged_in != "true":
+        raise HTTPException(status_code=401, detail="Please login first")
+
     # 🕵️‍♂️ 1. Update your "Guard" to allow mp4
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
     file_ext = file.filename.split(".")[-1].lower()
@@ -116,6 +191,13 @@ async def upload_media(
     )
 
     return RedirectResponse(url="/", status_code=303)
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    # 🗑️ Delete the "Key Card"
+    response.delete_cookie("is_logged_in")
+    return response
 
 # --- 3. EDIT & DELETE ---
 @app.post("/edit")
