@@ -93,7 +93,7 @@
 
         {% if request.cookies.get('is_logged_in') == 'true' %}
             <form action="/add-category/" method="post" style="display: flex; gap: 5px;">
-                <input type="text" name="name" placeholder="New Folder" required 
+                <input type="text" name="name" placeholder="New Category" required 
                        style="width: 130px; padding: 10px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
                 <button type="submit" class="btn btn-ai" style="width: 42px;">+</button>
             </form>

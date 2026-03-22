@@ -16,14 +16,14 @@ from sqlalchemy.orm import Session
 # --- INTERNAL COMPONENTS ---
 import models
 import database
-import vision        # The Brain
 import database_ops  # The Clerk
 from database import engine, SessionLocal
 from pydantic import BaseModel
-
+import vision
 from fastapi import Response 
 import security # security.py is imported
 from fastapi import Cookie
+import media_service
 
 # --- INITIALIZATION ---
 load_dotenv()
@@ -40,6 +40,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 # --- 1. DASHBOARD ---
 @app.get("/login")
@@ -150,45 +151,25 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 async def upload_media(
     request: Request,
     file: UploadFile = File(...),
+    asset_title: str = Form(...),     # 👈 Add this: Get the Title from the form!
     category_name: str = Form(...),
     db: Session = Depends(database.get_db),
-    is_logged_in: str = Cookie(None) # 🕵️‍♂️ Protect the upload too!
+    is_logged_in: str = Cookie(None)
 ):
     # 🚫 Only logged-in users can upload
     if is_logged_in != "true":
         raise HTTPException(status_code=401, detail="Please login first")
 
-    # 🕵️‍♂️ 1. Update your "Guard" to allow mp4
+    # 🕵️‍♂️ 1. Extension Guard
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
     file_ext = file.filename.split(".")[-1].lower()
     
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file.")
 
-    # 📂 2. Save the Physical File (Same as before)
-    upload_folder = "static/uploads"
-    file_path = os.path.join(upload_folder, file.filename)
-    with open(file_path, "wb+") as file_object:
-        file_object.write(file.file.read())
-
-    # 🧠 3. THE CONDITIONAL BRAIN
-    if file_ext == "mp4":
-        # 🎥 If it's a video, skip the AI and use "Portfolio Ready" tags
-        ai_description = "AI Motion Art, Video, Digital Creation"
-        print("DEBUG: Video detected. Skipping AI analysis.")
-    else:
-        # 📸 If it's an image, call the AI Analyst
-        try:
-            ai_description = vision.analyze_image(file_path)
-        except Exception as e:
-            ai_description = "AI-Analysis-Unavailable"
-
-    # 🗄️ 4. Register in Database (Same as before)
-    cat_id = database_ops.get_or_create_category(db, category_name)
-    database_ops.create_asset(
-        db=db, name=file.filename, file_path=file.filename,
-        ai_tags=ai_description, category_id=cat_id
-    )
+    # 🚀 2. Hand off to the Manager
+    # This one line replaces all the code you were repeating!
+    media_service.handle_upload_process(db, file, category_name, asset_title)
 
     return RedirectResponse(url="/", status_code=303)
 
