@@ -69,7 +69,7 @@
     
         {% if request.cookies.get('is_logged_in') == 'true' %}
             <div style="display: flex; gap: 10px;">
-                <button onclick="document.getElementById('upload-modal').style.display='flex'" class="btn btn-ai">
+                <button onclick="document.getElementById('uploadModal').style.display='flex'" class="btn btn-ai">
                     + Add New Asset
                 </button>
                 
@@ -154,28 +154,7 @@
     </div>
 
 </div>
-
-<div id="upload-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
-    <div style="background:white; padding:30px; border-radius:20px; width:380px;">
-        <h2 style="margin-top:0;">Upload Asset</h2>
-        <form action="/upload/" method="post" enctype="multipart/form-data">
-            <input type="text" name="name" placeholder="Title" required style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
-            <input type="file" name="file" required style="margin-bottom:15px;">
-            <div class="mb-3">
-                <label class="form-label">Select Category</label>
-                <select name="category_name" class="form-select" required>
-                    {% for cat in categories %}
-                        <option value="{{ cat.name }}">{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button type="button" onclick="this.closest('#upload-modal').style.display='none'" class="btn">Cancel</button>
-                <button type="submit" class="btn btn-ai" onclick="showLoader()">Upload</button>
-            </div>
-        </form>
-    </div>
-</div>
+{% include 'components/upload_modal.html' %}
 
 <script>
     // 1. The Counter & Visibility Logic
@@ -306,6 +285,7 @@ function clearSelection() {
         </form>
     </div>
 </div>
+
 </body>
 </html>
 

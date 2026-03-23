@@ -1,18 +1,20 @@
 <div class="admin-panel" style="background: #f8f9fa; padding: 25px; border-radius: 12px; border: 1px solid #dee2e6; margin-top: 20px;">
        <h3 style="margin-top: 0;">💻 Data Management</h3>
        
-       <div style="display: flex; gap: 15px; align-items: center;">
-           <a href="/export-vault" class="btn btn-outline-secondary btn-sm" style="text-decoration: none; border: 1px solid #6c757d; padding: 5px 10px; border-radius: 4px; color: #6c757d;">
-               📤 Export Vault
-           </a>
-   
-           <button onclick="document.getElementById('zip-input').click()" class="btn btn-outline-secondary btn-sm">
-               📥 Import Vault
-           </button>
-   
-           <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
-               <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
-           </form>
-       </div>
-   </div>
+       <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
+    
+        <button type="button" onclick="window.location.href='/export-vault'" class="btn">
+            <i class="fas fa-file-export" style="margin-right: 8px;"></i> Export to CSV
+        </button>
+    
+        <button type="button" onclick="document.getElementById('zip-input').click()" class="btn">
+            <i class="fas fa-file-import" style="margin-right: 8px;"></i> Import Vault
+        </button>
+    
+        <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
+            <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
+        </form>
+    
+    </div>
+</div>
    
