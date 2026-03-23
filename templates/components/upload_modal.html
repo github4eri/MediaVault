@@ -1,0 +1,98 @@
+<style>
+	/* Hide the ugly default input */
+	input[type="file"] {
+		display: none;
+	}
+
+	.custom-file-upload {
+		border: 1px solid #ccc;
+		display: inline-block;
+		padding: 10px 20px;
+		cursor: pointer;
+		background-color: #f8f9fa;
+		border-radius: 5px;
+		font-weight: bold;
+	}
+</style>
+
+
+<div id="uploadModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+    
+    <div class="modal-content" style="background-color:white; margin:5% auto; padding:30px; width:90%; max-width:450px; border-radius:12px; position:relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+        
+        <span class="close-btn" onclick="closeUploadModal()" style="position:absolute; right:20px; top:10px; cursor:pointer; font-size:28px; font-weight:bold; color:#666;">&times;</span>
+        
+        <h2 style="margin-top:0;">📤 Add to Vault</h2>
+        
+        <form action="/upload/" method="POST" enctype="multipart/form-data">
+            <label>Asset Title</label>
+            <input type="text" name="asset_title" placeholder="Give it a name..." required style="width:100%; padding:8px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;">
+
+            <label>Category</label>
+            <select name="category_name" required style="width:100%; padding:8px; margin-bottom:15px; border:1px solid #ccc; border-radius:4px;">
+                <option value="" disabled selected>-- Select a Category --</option>
+                {% for category in categories %}
+                    <option value="{{ category.name }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Choose File</label>
+            <input type="file" name="file" required style="display: block; width:100%; margin-bottom:20px;">
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" style="flex: 2; padding:10px; background-color:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+                    Save to Vault
+                </button>
+                
+                <button type="button" onclick="closeUploadModal()" style="flex: 1; background:#95a5a6; color:white; border:none; border-radius:5px; cursor:pointer;">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// 🕵️‍♂️ THE BRAIN OF THE MODAL
+function closeUploadModal() {
+    console.log("Close button clicked!"); // Check your browser console for this!
+    const modal = document.getElementById('uploadModal');
+    if (modal) {
+        modal.style.display = 'none';
+    } else {
+        alert("Error: Could not find the element with ID 'uploadModal'");
+    }
+}
+
+// Close if clicking outside the white box
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('uploadModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+});
+</script>
+
+<label>Choose Media</label>
+<div class="custom-file-upload-container" style="margin-bottom: 20px;">
+    <input type="file" name="file" id="file-upload" required 
+           onchange="updateFileName(this)" style="display: none;">
+    
+    <label for="file-upload" style="display: inline-block; padding: 10px 15px; background: #e9ecef; border: 1px solid #ced4da; border-radius: 5px; cursor: pointer; font-weight: 500; width: 100%; text-align: center;">
+        <i class="fas fa-upload"></i> Browse Files...
+    </label>
+    
+    <div id="file-chosen" style="font-size: 12px; color: #666; margin-top: 5px; text-align: center;">No file selected</div>
+</div>
+
+<script>
+// Update the text when a file is picked
+function updateFileName(input) {
+    const display = document.getElementById('file-chosen');
+    if (input.files && input.files.length > 0) {
+        display.textContent = "Selected: " + input.files[0].name;
+    } else {
+        display.textContent = "No file selected";
+    }
+}
+</script>
