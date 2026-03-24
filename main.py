@@ -5,13 +5,16 @@ import zipfile
 import io
 from typing import List
 from dotenv import load_dotenv
-
+from sqlalchemy.orm import joinedload
 from fastapi import FastAPI, Request, Depends, Form, File, UploadFile, Body
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi import HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import csv
+from fastapi.responses import FileResponse
+from datetime import datetime
 
 # --- INTERNAL COMPONENTS ---
 import models
@@ -245,18 +248,40 @@ async def add_category(name: str = Form(...), db: Session = Depends(get_db)):
     return RedirectResponse(url="/", status_code=303)
 
 # --- 5. EXPORT / BULK (Special Tools) ---
+
 @app.get("/export-vault")
-async def export_vault(db: Session = Depends(get_db)):
-    assets = db.query(models.DBMediaAsset).all()
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for asset in assets:
-            file_path = f"static/uploads/{asset.file_path}"
-            if os.path.exists(file_path):
-                zip_file.write(file_path, arcname=asset.name + os.path.splitext(asset.file_path)[1])
-    zip_buffer.seek(0)
-    return StreamingResponse(zip_buffer, media_type="application/zip", 
-                             headers={"Content-Disposition": "attachment; filename=vault_export.zip"})
+async def export_vault_data():
+    filename = f"vault_export_{datetime.now().strftime('%Y%m%d')}.csv"
+    os.makedirs("exports", exist_ok=True)
+    filepath = os.path.join("exports", filename)
+
+    db = SessionLocal()
+    try:
+        # 🚀 THE FIX: 'joinedload' grabs the category data while the session is still open
+        assets = db.query(models.DBMediaAsset).options(
+            joinedload(models.DBMediaAsset.category)
+        ).all()
+
+        with open(filepath, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["ID", "Name", "Location", "AI Tags", "Category", "File Path"])
+            
+            for item in assets:
+                # Now item.category.name will work because we pre-loaded it!
+                category_name = item.category.name if item.category else "No Category"
+                
+                writer.writerow([
+                    item.id, 
+                    item.name, 
+                    item.location, 
+                    item.ai_tags, 
+                    category_name, 
+                    item.file_path
+                ])
+    finally:
+        db.close() # 🔒 close the session AFTER the loop is done
+
+    return FileResponse(path=filepath, filename=filename, media_type='text/csv')
 
 # --- STARTUP TASKS ---
 @app.on_event("startup")
