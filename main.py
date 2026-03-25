@@ -33,6 +33,10 @@ import media_service
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("exports", exist_ok=True)
 
+# 🚦 THE RULES (Global Constants) and for security
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
+
+
 # --- INITIALIZATION ---
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
@@ -99,60 +103,40 @@ async def login(
 @app.get("/")
 async def dashboard(
     request: Request, 
-    db: Session = Depends(database.get_db),
-    is_logged_in: str = Cookie(None) # 🕵️‍♂️ Look for the badge
+    search: str = None,           # 🔍 Captures search text
+    category: int = None,         # 📁 Captures category ID
+    db: Session = Depends(get_db), # 🔑 Use the local get_db
+    is_logged_in: str = Cookie(None)
 ):
-    # 🚫 THE LOCK: If the badge is missing, redirect to login
+    # 🚫 1. SECURITY CHECK: If not logged in, go to login page
     if is_logged_in != "true":
         return RedirectResponse(url="/login", status_code=303)
 
-    # ... (Keep your existing code to fetch assets and categories)
-    assets = db.query(models.DBMediaAsset).all()
-    categories = db.query(models.Category).all()
-    
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
-        "assets": assets, 
-        "categories": categories
-    })
-
-@app.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request, 
-    search: str = None,           # 🔍 Captures ?search= from the URL
-    category: int = None,         # 📁 Captures ?category= from the URL
-    db: Session = Depends(get_db)
-):
-    # 1. Start with a "Base Query" (all assets)
+    # 🏗️ 2. BASE QUERY: Start with all assets
     query = db.query(models.DBMediaAsset)
 
-    # 2. Add a filter if the user is searching for text
+    # 🔍 3. SEARCH FILTER: If user typed something
     if search:
-        # We use .ilike() for case-insensitive searching (e.g., 'Art' matches 'art')
         query = query.filter(
             (models.DBMediaAsset.name.ilike(f"%{search}%")) | 
             (models.DBMediaAsset.ai_tags.ilike(f"%{search}%"))
         )
     
-    # 3. Add a filter if the user clicked a specific category
+    # 📁 4. CATEGORY FILTER: If user clicked a category
     if category:
         query = query.filter(models.DBMediaAsset.category_id == category)
 
-    # 4. Execute the final filtered query
+    # 🚀 5. EXECUTE & RENDER
     assets = query.all()
     categories = db.query(models.Category).all()
 
-    # 5. Send everything to the dashboard
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "assets": assets, 
         "categories": categories,
-        "current_search": search  # We send this back so the search bar stays filled
+        "current_search": search
     })
 
-
-# ---  THE SECURITY RULES (Constants) ---
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
 # --- THE UPLOAD & AI ROUTE ---
 @app.post("/upload/")
