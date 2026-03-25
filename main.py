@@ -28,6 +28,10 @@ import security # security.py is imported
 from fastapi import Cookie
 import media_service
 
+# 🛡️ THE FOLDER SHIELD: Create these before the app starts
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("exports", exist_ok=True)
+
 # --- INITIALIZATION ---
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
