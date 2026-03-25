@@ -44,6 +44,8 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="MediaVault Pro")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+# 🛡️ THE CACHE SHIELD: Prevents the Python 3.14 "unhashable" error
+templates.env.cache = None
 
 # Dependency to get DB session
 def get_db():
