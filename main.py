@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 import csv
 from fastapi.responses import FileResponse
 from datetime import datetime
+from google import genai
 
 # --- INTERNAL COMPONENTS ---
 import models

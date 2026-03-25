@@ -2,6 +2,6 @@ fastapi
 uvicorn
 sqlalchemy
 python-multipart
-google-generativeai
+google-genai
 jinja2
 python-dotenv
