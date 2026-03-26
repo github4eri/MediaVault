@@ -59,7 +59,10 @@ def get_db():
 # --- 1. DASHBOARD ---
 @app.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(
+    request=request, 
+    name="login.html"
+)
 
 @app.post("/login")
 async def login(
@@ -132,12 +135,11 @@ async def dashboard(
     assets = query.all()
     categories = db.query(models.Category).all()
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
-        "assets": assets, 
-        "categories": categories,
-        "current_search": search
-    })
+    return templates.TemplateResponse(
+    request=request, 
+    name="dashboard.html", 
+    context={"assets": assets, "categories": categories}
+)
 
 
 # --- THE UPLOAD & AI ROUTE ---
@@ -298,11 +300,11 @@ async def delete_category(cat_id: int, db: Session = Depends(database.get_db)):
 async def edit_page(request: Request, asset_id: int, db: Session = Depends(database.get_db)):
     asset = database_ops.get_asset_by_id(db, asset_id)
     categories = db.query(models.Category).all()
-    return templates.TemplateResponse("edit.html", {
-        "request": request, 
-        "asset": asset, 
-        "categories": categories
-    })
+    return templates.TemplateResponse(
+    request=request, 
+    name="edit.html", 
+    context={"asset": asset, "categories": categories}
+)
 
 # 2. The "Update Logic" - This saves the changes
 
