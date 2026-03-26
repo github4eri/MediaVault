@@ -79,8 +79,13 @@ async def login(
     if not user:
         # 🕵️‍♂️ Did we even find the user?
         print(f"DEBUG: User '{username}' NOT found in database.")
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid username"})
-
+        
+        return templates.TemplateResponse(
+            request=request, 
+            name="login.html", 
+            context={"error": "Invalid username"}
+        )
+        
     # 🕵️‍♂️ Compare the keys
     is_valid = security.verify_password(password, user.hashed_password)
     print(f"DEBUG: Password match result: {is_valid}")
@@ -283,6 +288,17 @@ def startup_tasks():
     # Check if categories exist, create if not (Photography, AI Art, etc.)
     if not db.query(models.Category).first():
         db.add_all([models.Category(name="Photography"), models.Category(name="AI Art")])
+        db.commit()
+    db.close()
+    # auto create admin if not exsist.
+    admin_exists = db.query(models.User).filter(models.User.username == "admin").first()
+    if not admin_exists:
+        from security import get_password_hash # Make sure to import this!
+        new_user = models.User(
+            username="admin", 
+            hashed_password=get_password_hash("your_secret_password") # Set your password here!
+        )
+        db.add(new_user)
         db.commit()
     db.close()
     
