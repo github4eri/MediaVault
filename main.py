@@ -285,22 +285,28 @@ async def export_vault_data():
 @app.on_event("startup")
 def startup_tasks():
     db = SessionLocal()
-    # Check if categories exist, create if not (Photography, AI Art, etc.)
-    if not db.query(models.Category).first():
-        db.add_all([models.Category(name="Photography"), models.Category(name="AI Art")])
-        db.commit()
-    db.close()
-    # auto create admin if not exsist.
-    admin_exists = db.query(models.User).filter(models.User.username == "admin").first()
-    if not admin_exists:
-        from security import get_password_hash # Make sure to import this!
-        new_user = models.User(
-            username="admin", 
-            hashed_password=get_password_hash("your_secret_password") # Set your password here!
-        )
-        db.add(new_user)
-        db.commit()
-    db.close()
+    try:
+        # 1. Create categories if they don't exist
+        if not db.query(models.Category).first():
+            db.add_all([models.Category(name="Photography"), models.Category(name="AI Art")])
+            db.commit()
+        
+        # 2. Create admin if it doesn't exist
+        admin = db.query(models.User).filter(models.User.username == "admin").first()
+        if not admin:
+            from security import get_password_hash
+            # 💡 TIP: Make sure your password here isn't actually super long!
+            new_user = models.User(
+                username="admin", 
+                hashed_password=get_password_hash("admin123") # Change this later!
+            )
+            db.add(new_user)
+            db.commit()
+            print("DEBUG: Admin user created successfully!")
+    except Exception as e:
+        print(f"ERROR during startup: {e}")
+    finally:
+        db.close()
     
 @app.post("/delete-category/{cat_id}")
 async def delete_category(cat_id: int, db: Session = Depends(database.get_db)):
