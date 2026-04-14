@@ -1,16 +1,25 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 import models
 import database
 import security
 
+# 1. Load the sticky note (.env)
+load_dotenv()
+
 def create_the_admin():
-    # 1. Open a connection to the database
     db = database.SessionLocal()
     
     try:
-        # 2. Pick your credentials
-        username = "admin"
-        password = "MySecurePassword2026toTestForNow" 
+        # 2. CHANGE THIS PART: Grab from .env instead of typing it here
+        username = os.getenv("ADMIN_USERNAME")
+        password = os.getenv("ADMIN_PASSWORD")
+
+        # Validation: Make sure the .env actually had data
+        if not username or not password:
+            print("❌ ERROR: ADMIN_USERNAME or ADMIN_PASSWORD is missing in .env!")
+            return
 
         # 3. Check if this user already exists (so we don't make duplicates)
         existing_user = db.query(models.User).filter(models.User.username == username).first()

@@ -91,7 +91,11 @@ async def login(
     print(f"DEBUG: Password match result: {is_valid}")
 
     if not is_valid:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid password"})
+        return templates.TemplateResponse(
+    request=request, 
+    name="login.html", 
+    context={"request": request, "error": "Invalid password"}
+)
 
  
     # 🕵️‍♂️ 1. Find the user in the database
