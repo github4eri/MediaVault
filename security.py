@@ -21,9 +21,13 @@ def get_password_hash(password):
     """
     return pwd_context.hash(password)
 
-def get_current_user(db: Session = Depends(database.get_db), session_token: str = Cookie(None)):
-    # This looks at the cookie to find the username
-    # (Note: In a bigger app, you'd use a real ID/Token, but this works for now!)
+def get_current_user(db: Session = Depends(database.get_db), username: str = Cookie(None)):
+    if not username:
+        return None
+    # This finds the user based on the cookie name!
+    return db.query(models.User).filter(models.User.username == username).first()
+  
+    # (Note: In a bigger app, to use a real ID/Token.)
     
     # We are assuming you store the username in a cookie or can find the user another way.
     # If you don't have a session_token, we can use the 'admin_username' from .env for now

@@ -110,8 +110,10 @@ async def login(
         })
 
     # 🕵️‍♂️ 3. If correct, "Lock the Door" by setting a simple Cookie
-    response = RedirectResponse(url="/", status_code=303)
-    response.set_cookie(key="is_logged_in", value="true") # This is our temporary "Key Card"
+    response = RedirectResponse(url="/", status_code=303)  
+    response.set_cookie(key="username", value=username, httponly=True)
+    response.set_cookie(key="is_logged_in", value="true")
+    
     return response
 
 @app.get("/")
