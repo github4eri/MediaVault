@@ -120,7 +120,8 @@ async def dashboard(
     search: str = None,           # 🔍 Captures search text
     category: int = None,         # 📁 Captures category ID
     db: Session = Depends(get_db), # 🔑 Use the local get_db
-    is_logged_in: str = Cookie(None)
+    is_logged_in: str = Cookie(None),
+    current_user: models.User = Depends(security.get_current_user)
 ):
     # 🚫 1. SECURITY CHECK: If not logged in, go to login page
     if is_logged_in != "true":
@@ -147,7 +148,10 @@ async def dashboard(
     return templates.TemplateResponse(
     request=request, 
     name="dashboard.html", 
-    context={"assets": assets, "categories": categories}
+    context={"assets": assets,
+     "categories": categories,
+     "user": current_user
+     }
 )
 
 
@@ -159,7 +163,8 @@ async def upload_media(
     asset_title: str = Form(...),     # 👈 Add this: Get the Title from the form!
     category_name: str = Form(...),
     db: Session = Depends(database.get_db),
-    is_logged_in: str = Cookie(None)
+   is_logged_in: str = Cookie(None), # Added the comma!
+current_user: models.User = Depends(security.get_current_user) #Added today, 4/15
 ):
     # 🚫 Only logged-in users can upload
     if is_logged_in != "true":
@@ -201,7 +206,10 @@ async def edit_asset(
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/delete/{asset_id}")
-async def delete_asset(asset_id: int, db: Session = Depends(get_db)):
+async def delete_asset(asset_id: int, 
+db: Session = Depends(get_db),
+current_user: models.User = Depends(security.get_current_user)
+):
     # 🕵️‍♂️ 1. Find the asset
     asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
     
@@ -224,7 +232,9 @@ class BulkDeleteRequest(BaseModel):
     asset_ids: List[int]
 
 @app.post("/bulk-delete")
-async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(get_db)):
+async def bulk_delete(request: BulkDeleteRequest, db: Session = Depends(get_db),
+current_user: models.User = Depends(security.get_current_user)
+):
     try:
         # 🕵️‍♂️ Find all assets in the list
         assets = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id.in_(request.asset_ids)).all()
@@ -313,7 +323,10 @@ def startup_tasks():
         db.close()
     
 @app.post("/delete-category/{cat_id}")
-async def delete_category(cat_id: int, db: Session = Depends(database.get_db)):
+async def delete_category(cat_id: int, 
+db: Session = Depends(database.get_db),
+current_user: models.User = Depends(security.get_current_user)
+):
     # Find it in the vault
     category = db.query(models.Category).filter(models.Category.id == cat_id).first()
     if category:

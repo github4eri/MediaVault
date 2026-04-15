@@ -23,7 +23,9 @@
         <span class="close-btn" onclick="closeUploadModal()" style="position:absolute; right:20px; top:10px; cursor:pointer; font-size:28px; font-weight:bold; color:#666;">&times;</span>
         
         <h2 style="margin-top:0; color: #333;">📤 Add to Vault</h2>
-        
+
+    {% if user.username != 'guest' %}
+
         <form action="/upload/" method="POST" enctype="multipart/form-data">
             
             <label style="display:block; margin-bottom:5px; font-weight:bold;">Asset Title</label>
@@ -59,6 +61,11 @@
                 </button>
             </div>
         </form>
+    {% else %} 
+        <p style="text-align: center; color: #666; font-style: italic; padding: 20px;">
+            ⚠️ Uploading is disabled in View-Only mode.
+        </p>
+    {% endif %}  
     </div>
 </div>
 

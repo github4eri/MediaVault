@@ -69,82 +69,86 @@
     
         {% if request.cookies.get('is_logged_in') == 'true' %}
             <div style="display: flex; gap: 10px;">
+                {% if user.username != 'guest' %}
                 <button onclick="document.getElementById('uploadModal').style.display='flex'" class="btn btn-ai">
                     + Add New Asset
                 </button>
+                {% endif %}
                 
-                <a href="/logout" class="btn" style="background: #ff4757; color: white; text-decoration: none; padding: 10px 15px; border-radius: 10px; font-size: 0.9rem;">
-                    Sign Out
-                </a>
+                <a href="/logout" class="btn" style="...">Sign Out</a>
             </div>
         {% endif %}
     </div>
     
-    {% if request.cookies.get('is_logged_in') == 'true' %}
+    {% if request.cookies.get('is_logged_in') == 'true' and user.username != 'guest' %}
         {% include 'components/admin_tools.html' %}
     {% endif %}
 
     <div class="search-area" style="display: flex; gap: 20px; align-items: center;">
         <form style="flex-grow: 1; display: flex; gap: 10px;">
-            <input type="text" name="search" placeholder="Search assets..." value="{{ search_term or '' }}" 
-                   style="flex-grow: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
+            <input type="text" name="search" ...>
             <button type="submit" class="btn">Search</button>
         </form>
 
-        {% if request.cookies.get('is_logged_in') == 'true' %}
-            <form action="/add-category/" method="post" style="display: flex; gap: 5px;">
-                <input type="text" name="name" placeholder="New Category" required 
-                       style="width: 130px; padding: 10px; border-radius: 10px; border: 1px solid var(--accent-secondary);">
-                <button type="submit" class="btn btn-ai" style="width: 42px;">+</button>
+        {% if request.cookies.get('is_logged_in') == 'true' and user.username != 'guest' %}
+            <form action="/add-category/" method="post" ...>
+                ...
             </form>
         {% endif %}
     </div>
 
-    <div class="category-row">
-        <a href="/" class="btn" style="border-radius: 30px; {{ 'background: var(--accent-primary); color: white;' if not active_cat }}">All</a>
+    <div class="category-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 15px;">
+        <a href="/" class="btn" style="border-radius: 30px; height: 38px; display: flex; align-items: center; {{ 'background: var(--accent-primary); color: white;' if not active_cat }}">
+            All
+        </a>
+    
         {% for cat in categories %}
-        <div class="cat-chip" style="{{ 'border-color: var(--accent-primary);' if active_cat == cat.id }}">
-            <a href="/?category={{ cat.id }}" 
-            style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">
-            {{ cat.name }}
+        <div class="cat-chip" style="display: flex; align-items: center; background: #f1f2f6; border-radius: 20px; padding: 0 15px; height: 38px; border: 1px solid #ddd; min-width: 80px; justify-content: center;">
+            
+            <a href="/?category={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">
+                {{ cat.name }}
             </a>
-            <form action="/delete-category/{{ cat.id }}" method="post">
-                <button type="submit" onclick="return confirm('Delete folder?')" style="background:none; border:none; color:#ff4757; cursor:pointer; padding:10px; font-weight:bold;">✕</button>
+    
+            {% if user.username != 'guest' %}
+            <form action="/delete-category/{{ cat.id }}" method="post" style="margin-left: 10px; display: flex; align-items: center;">
+                <button type="submit" onclick="return confirm('Delete folder?')" style="background:none; border:none; color:#ff4757; cursor:pointer; font-weight:bold; padding:0; font-size: 14px; line-height: 1;">✕</button>
             </form>
+            {% endif %}
         </div>
         {% endfor %}
-        <a href="/" style="font-size: 12px; color: gray; margin-left: 10px;">Clear Filters</a>
+
+        <a href="/" ...>Clear Filters</a>
     </div>
 
-    <div id="bulk-bar" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 15px 25px; border-radius: 50px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.3); align-items: center; gap: 15px;">
-    
-        <span id="selected-count" style="font-weight: bold;">0 Items Selected</span>
-        
-        <button onclick="bulkDelete()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">
-            🗑️ Delete Selected
-        </button>
-        
-        <button onclick="clearSelection()" style="background: transparent; color: #bdc3c7; border: 1px solid #bdc3c7; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 12px;">
-            Cancel
-        </button>
+    {% if user.username != 'guest' %}
+    <div id="bulk-bar" style="...">
+        ...
     </div>
+    {% endif %}
 
+    {% if user.username != 'guest' %}
     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-        <input type="checkbox" id="select-all-master" onclick="toggleSelectAll(this)" style="margin-right: 10px;">
-<label for="select-all-master">Select All</label>
+        <input type="checkbox" id="select-all-master" ...>
+        <label for="select-all-master">Select All</label>
     </div>
+    {% endif %}
 
     <div class="assets-grid">
         {% for asset in assets %}
-        <div class="asset-card" style="display: flex; flex-direction: column; height: auto; min-height: 320px; position: relative;">
+        <div class="asset-card" ...>
             
-            {% include 'components/checkbox.html' %}
+            {% if user.username != 'guest' %}
+                {% include 'components/checkbox.html' %}
+            {% endif %}
     
             {% include 'components/preview.html' %}
     
             <div style="display:flex; justify-content:space-between; align-items:start; padding-bottom: 10px;">
                 {% include 'components/meta.html' %}
-                {% include 'components/actions.html' %}
+                
+                {% if user.username != 'guest' %}
+                    {% include 'components/actions.html' %}
+                {% endif %}
             </div>
     
             {% include 'components/tags.html' %}
@@ -154,7 +158,10 @@
     </div>
 
 </div>
-{% include 'components/upload_modal.html' %}
+
+{% if user.username != 'guest' %}
+    {% include 'components/upload_modal.html' %}
+{% endif %}
 
 <script>
     // 1. The Counter & Visibility Logic
