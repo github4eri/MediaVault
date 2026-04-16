@@ -1,31 +1,38 @@
+import os
 import database, models, security
 from sqlalchemy.orm import Session
 
 def seed():
     db = next(database.get_db())
     
-    # 1. Create Admin
-    admin = db.query(models.User).filter(models.User.username == "admin100").first()
-    if not admin:
-        new_admin = models.User(
-            username="admin100", 
-            hashed_password=security.hash_password("your_secret_admin_pw") # 👈 Put your real admin pw here
-        )
-        db.add(new_admin)
-        print("✅ Admin created!")
-    
-    # 2. Create Guest
-    guest = db.query(models.User).filter(models.User.username == "guest").first()
-    if not guest:
-        new_guest = models.User(
-            username="guest", 
-            hashed_password=security.hash_password("guest123")
-        )
-        db.add(new_guest)
-        print("✅ Guest created!")
+    # Grab from Render Environment Variables
+    admin_user = os.getenv("ADMIN_USERNAME")
+    admin_pass = os.getenv("ADMIN_PASSWORD")
+    guest_user = os.getenv("GUEST_USERNAME")
+    guest_pass = os.getenv("GUEST_PASSWORD")
+
+    # Use the name that is actually in your security.py (likely get_password_hash)
+    if admin_user and admin_pass:
+        admin_exists = db.query(models.User).filter(models.User.username == admin_user).first()
+        if not admin_exists:
+            new_admin = models.User(
+                username=admin_user, 
+                hashed_password=security.get_password_hash(admin_pass) 
+            )
+            db.add(new_admin)
+            print("✅ Admin created!")
+
+    if guest_user and guest_pass:
+        guest_exists = db.query(models.User).filter(models.User.username == guest_user).first()
+        if not guest_exists:
+            new_guest = models.User(
+                username=guest_user, 
+                hashed_password=security.get_password_hash(guest_pass) 
+            )
+            db.add(new_guest)
+            print("✅ Guest created!")
     
     db.commit()
-    print("🚀 Database is ready!")
 
 if __name__ == "__main__":
     seed()
