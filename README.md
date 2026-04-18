@@ -1,52 +1,56 @@
-📸 MediaVault: AI-Powered Media Intelligence
+## 📸 **MediaVault** - AI-Powered Media Intelligence ##
+
 [Screenshot Placeholder - Coming Soon]
 
-📄 Overview
+**📄 Overview**
+
 MediaVault is a professional-grade photo and video management system that transforms a static gallery into an intelligent, searchable database. By integrating Google Gemini AI, the application automatically analyzes, describes, and tags uploaded images upon arrival.
 
 Built with a robust Python backend, MediaVault serves as a high-performance portfolio for creative assets, featuring a custom Role-Based Access Control (RBAC) system to maintain data integrity while allowing public walkthroughs.
 
-🌐 Live Demo
-Live URL: https://my-media-vault-yhpp.onrender.com
 
-Guest Access: * Username: guest Password: guest123
+🌐 **Live Demo**
 
-(Note: Guest mode is view-only to showcase features without modifying the live database.)
+Live URL: https://my-media-vault-yhpp.onrender.com  
+**Guest Access:** Username: guest        Password: guest123(Guest mode is view-only to showcase features without modifying the live database.)
 
-🛠️ Tech Stack
-Intelligence: Google Gemini Pro Vision API
 
-Backend: FastAPI (Python 3.14+)
+🛠️ **Tech Stack**
 
-Database: SQLAlchemy ORM with SQLite
+**Intelligence:** Google Gemini Pro Vision API
 
-Frontend: Jinja2 Templates & Tailwind CSS
+**Backend:** FastAPI (Python 3.14+)
 
-Authentication: Cookie-based sessions with password hashing (Passlib/Bcrypt)
+**Database:** SQLAlchemy ORM with SQLite
 
-Environment: python-dotenv for secure API key management
+**Frontend:** Jinja2 Templates & Tailwind CSS
 
-Deployment: Render
+**Authentication:** Cookie-based sessions with password hashing (Passlib/Bcrypt)
 
-✨ Key Engineering Features
-AI Vision Analysis: Leverages Google Gemini to automatically generate descriptive captions and metadata tags for every upload.
+**Environment:** python-dotenv for secure API key management
 
-Dual-Role Authentication: Custom middleware logic to distinguish between Admin (Full CRUD) and Guest (Read-Only) identities using secure HTTP-only cookies.
+**Deployment:** Render
 
-Modular Architecture: Follows a clean design pattern separating AI processing logic, database management, and UI rendering.
 
-Automated Metadata Extraction: Systematically extracts file types, sizes, and timestamps during the ingestion process.
+✨ **Key Engineering Features**
 
-Relational Integrity: Implements a structured SQL schema to ensure reliable media-to-tag relationships.
+**AI Vision Analysis:** Leverages Google Gemini to automatically generate descriptive captions and metadata tags for every upload.
 
-⚙️ Local Setup
-Clone the repository:
+**Dual-Role Authentication:** Custom middleware logic to distinguish between Admin (Full CRUD) and Guest (Read-Only) identities using secure HTTP-only cookies.
 
-1. git clone https://github.com/github4eri/MediaVault
-Install dependencies:
+**Modular Architecture:** Follows a clean design pattern separating AI processing logic, database management, and UI rendering.
 
-2. pip install -r requirements.txt
+**Automated Metadata Extraction:** Systematically extracts file types, sizes, and timestamps during the ingestion process.
 
-3. Environment Variables: Create a .env file and add your GEMINI_API_KEY, ADMIN_PASSWORD, and GUEST_PASSWORD.
+**Relational Integrity:** Implements a structured SQL schema to ensure reliable media-to-tag relationships.
 
-4. Start the development server: uvicorn main:app --reload
+
+⚙️ **Local Setup**
+
+1. **Clone the repository:** git clone https://github.com/github4eri/MediaVault
+
+2. **Install dependencies:** pip install -r requirements.txt
+
+3. **Environment Variables:** Create a .env file and add your GEMINI_API_KEY, ADMIN_PASSWORD, and GUEST_PASSWORD.
+
+4. **Start the development server:** uvicorn main:app --reload
