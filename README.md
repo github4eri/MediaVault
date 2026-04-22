@@ -1,6 +1,6 @@
 ## 📸 **MediaVault** - AI-Powered Media Intelligence ##
 
-[Screenshot Placeholder - Coming Soon]
+<p align="center"><img src="images/MediaVault.jpg" width="70%"></p>
 
 **📄 Overview**
 
