@@ -7,10 +7,6 @@
             <i class="fas fa-file-export" style="margin-right: 8px;"></i> Export to CSV
         </button>
         
-        <button type="button" onclick="document.getElementById('zip-input').click()" class="btn">
-            <i class="fas fa-file-import" style="margin-right: 8px;"></i> Import Vault
-        </button>
-    
         <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
             <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
         </form>
