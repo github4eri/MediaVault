@@ -41,6 +41,7 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 
+
 app = FastAPI(title="MediaVault Pro")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -71,45 +72,23 @@ async def login(
     password: str = Form(...),
     db: Session = Depends(database.get_db)
 ):
-    # 🕵️‍♂️ What did the user type?
     print(f"DEBUG: Attempting login for user: '{username}'")
 
-    user = db.query(models.User).filter(models.User.username == username).first()
-
-    if not user:
-        # 🕵️‍♂️ Did we even find the user?
-        print(f"DEBUG: User '{username}' NOT found in database.")
-        
-        return templates.TemplateResponse(
-            request=request, 
-            name="login.html", 
-            context={"error": "Invalid username"}
-        )
-        
-    # 🕵️‍♂️ Compare the keys
-    is_valid = security.verify_password(password, user.hashed_password)
-    print(f"DEBUG: Password match result: {is_valid}")
-
-    if not is_valid:
-        return templates.TemplateResponse(
-    request=request, 
-    name="login.html", 
-    context={"request": request, "error": "Invalid password"}
-)
-
- 
     # 🕵️‍♂️ 1. Find the user in the database
     user = db.query(models.User).filter(models.User.username == username).first()
 
-    # 🕵️‍♂️ 2. Check if user exists AND if the password is correct
+   # 🕵️‍♂️ 2. Check if user exists AND if the password is correct
     if not user or not security.verify_password(password, user.hashed_password):
-        # If wrong, send them back to login with an error message
-        return templates.TemplateResponse("login.html", {
-            "request": request, 
-            "error": "Invalid username or password"
-        })
+        print(f"DEBUG: Login failed for '{username}'.")
+        # 🟢 THE FIX: Use explicit labels (request=, name=, context=)
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html", 
+            context={"request": request, "error": "Invalid username or password"}
+        )
 
     # 🕵️‍♂️ 3. If correct, "Lock the Door" by setting a simple Cookie
+    print(f"DEBUG: Login successful for '{username}'.")
     response = RedirectResponse(url="/", status_code=303)  
     response.set_cookie(key="username", value=username, httponly=True)
     response.set_cookie(key="is_logged_in", value="true")
