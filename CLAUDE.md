@@ -62,6 +62,4 @@ Login sets two cookies: `username` (httponly) and `is_logged_in`. `security.get_
 ## Known Quirks
 
 - `templates.env.cache = None` in `main.py` is a required workaround for a Python 3.14 Jinja2 hashability bug — do not remove it.
-- `database_ops.py` has two overlapping functions: `create_media_asset` (old, unused) and `create_asset` (the one actually called). Only `create_asset` commits and refreshes.
-- `security.py`'s `get_current_user` has unreachable code after its `return` statement (lines ~30–40).
 - The admin user is seeded in two separate places: `main.py` startup hook (hardcoded `admin/admin123`) and `seed_all.py` (env-driven). On Render, `seed_all.py` is the authoritative seeder.

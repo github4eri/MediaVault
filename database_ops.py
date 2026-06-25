@@ -11,20 +11,9 @@ def get_or_create_category(db: Session, cat_name: str):
         db.refresh(cat)
     return cat.id
 
-def create_media_asset(db: Session, name, file_path, ai_tags, category_id):
-    """Adds a new photo to the database 'cart'."""
-    new_asset = models.DBMediaAsset(
-        name=name,
-        file_path=file_path,
-        ai_tags=ai_tags,
-        category_id=category_id
-    )
-    db.add(new_asset)
-
 def get_asset_by_id(db: Session, asset_id: int):
     return db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
     
-# --- THE MISSING SKILL ---
 def create_asset(db: Session, name: str, file_path: str, ai_tags: str, category_id: int):
     # 🏗️ 1. Create a new "Instance" of your Database Model
     new_asset = models.DBMediaAsset(

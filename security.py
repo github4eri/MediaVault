@@ -1,5 +1,5 @@
 from passlib.context import CryptContext
-from fastapi import Cookie, Depends, HTTPException
+from fastapi import Cookie, Depends
 from sqlalchemy.orm import Session
 import database
 import models
@@ -24,19 +24,6 @@ def get_password_hash(password):
 def get_current_user(db: Session = Depends(database.get_db), username: str = Cookie(None)):
     if not username:
         return None
-    # This finds the user based on the cookie name!
     return db.query(models.User).filter(models.User.username == username).first()
-  
-    # (Note: In a bigger app, to use a real ID/Token.)
-    
-    # We are assuming you store the username in a cookie or can find the user another way.
-    # If you don't have a session_token, we can use the 'admin_username' from .env for now
-    import os
-    username = os.getenv("ADMIN_USERNAME") # Or however you identify the logged-in person
-    
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
 
     
