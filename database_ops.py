@@ -14,13 +14,14 @@ def get_or_create_category(db: Session, cat_name: str):
 def get_asset_by_id(db: Session, asset_id: int):
     return db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
     
-def create_asset(db: Session, name: str, file_path: str, ai_tags: str, category_id: int):
+def create_asset(db: Session, name: str, file_path: str, ai_tags: str, category_id: int, original_file_path: str = None):
     # 🏗️ 1. Create a new "Instance" of your Database Model
     new_asset = models.DBMediaAsset(
         name=name,
         file_path=file_path,
         ai_tags=ai_tags,
-        category_id=category_id
+        category_id=category_id,
+        original_file_path=original_file_path
     )
     
     # 📥 2. Add it to the "Waiting Room"

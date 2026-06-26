@@ -6,6 +6,7 @@ import io
 from typing import List
 from dotenv import load_dotenv
 from sqlalchemy.orm import joinedload
+from sqlalchemy import text
 from fastapi import FastAPI, Request, Depends, Form, File, UploadFile, Body
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi import HTTPException
@@ -34,12 +35,20 @@ os.makedirs("uploads", exist_ok=True)
 os.makedirs("exports", exist_ok=True)
 
 # 🚦 THE RULES (Global Constants) and for security
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4", "mov", "heic"}
 
 
 # --- INITIALIZATION ---
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
+
+# Migrate existing databases: add original_file_path column if missing
+with engine.connect() as _conn:
+    try:
+        _conn.execute(text("ALTER TABLE media_assets ADD COLUMN original_file_path VARCHAR"))
+        _conn.commit()
+    except Exception:
+        pass
 
 
 app = FastAPI(title="MediaVault Pro")
@@ -152,7 +161,7 @@ current_user: models.User = Depends(security.get_current_user) #Added today, 4/1
         raise HTTPException(status_code=401, detail="Please login first")
 
     # 🕵️‍♂️ 1. Extension Guard
-    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4"}
+    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4", "mov", "heic"}
     file_ext = file.filename.split(".")[-1].lower()
     
     if file_ext not in ALLOWED_EXTENSIONS:
@@ -201,6 +210,11 @@ current_user: models.User = Depends(security.get_current_user)
             os.remove(file_path)
             print(f"DEBUG: Deleted file {file_path}")
 
+        if asset.original_file_path:
+            orig_path = os.path.join("static/uploads", asset.original_file_path)
+            if os.path.exists(orig_path):
+                os.remove(orig_path)
+
         # 🗑️ 3. DATABASE DELETE: Remove the record
         db.delete(asset)
         db.commit()
@@ -208,6 +222,25 @@ current_user: models.User = Depends(security.get_current_user)
 
     return RedirectResponse(url="/", status_code=303)
     
+@app.get("/download-original/{asset_id}")
+async def download_original(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    asset = database_ops.get_asset_by_id(db, asset_id)
+    if not asset or not asset.original_file_path:
+        raise HTTPException(status_code=404, detail="Original file not found")
+    file_path = os.path.join("static/uploads", asset.original_file_path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File missing from disk")
+    return FileResponse(
+        file_path,
+        filename=asset.original_file_path,
+        media_type="image/heic",
+        headers={"Content-Disposition": f"attachment; filename={asset.original_file_path}"}
+    )
+
 #bulk delete
 class BulkDeleteRequest(BaseModel):
     asset_ids: List[int]
@@ -225,6 +258,10 @@ current_user: models.User = Depends(security.get_current_user)
             file_path = os.path.join("static/uploads", asset.file_path)
             if os.path.exists(file_path):
                 os.remove(file_path)
+            if asset.original_file_path:
+                orig_path = os.path.join("static/uploads", asset.original_file_path)
+                if os.path.exists(orig_path):
+                    os.remove(orig_path)
             # Database delete
             db.delete(asset)
             
