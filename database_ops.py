@@ -14,25 +14,28 @@ def get_or_create_category(db: Session, cat_name: str):
 def get_asset_by_id(db: Session, asset_id: int):
     return db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
     
-def create_asset(db: Session, name: str, file_path: str, ai_tags: str, category_id: int, original_file_path: str = None):
-    # 🏗️ 1. Create a new "Instance" of your Database Model
+def create_asset(
+    db: Session,
+    name: str,
+    file_path: str,
+    ai_tags: str,
+    category_id: int,
+    original_file_path: str = None,
+    copyright_option_id: int = None,
+    use_purpose_option_id: int = None,
+):
     new_asset = models.DBMediaAsset(
         name=name,
         file_path=file_path,
         ai_tags=ai_tags,
         category_id=category_id,
-        original_file_path=original_file_path
+        original_file_path=original_file_path,
+        copyright_option_id=copyright_option_id,
+        use_purpose_option_id=use_purpose_option_id,
     )
-    
-    # 📥 2. Add it to the "Waiting Room"
     db.add(new_asset)
-    
-    # 🔒 3. Save it to the hard drive (The Commit)
     db.commit()
-    
-    # 🔄 4. Refresh to get the new ID from the database
     db.refresh(new_asset)
-    
     return new_asset
 
 

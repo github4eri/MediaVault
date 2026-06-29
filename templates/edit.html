@@ -37,7 +37,32 @@
                              {% endfor %}
                          </select>
                      </div>
-                 
+
+                     {% for group in subcategory_groups %}
+                     <div class="mb-3">
+                         <label class="form-label">{{ group.name }}</label>
+                         {% if group.name == 'Copyright Status' %}
+                         <select name="copyright_option_id" class="form-select">
+                             <option value="">-- Optional --</option>
+                             {% for option in group.options %}
+                                 <option value="{{ option.id }}" {% if option.id == asset.copyright_option_id %}selected{% endif %}>
+                                     {{ option.name }}
+                                 </option>
+                             {% endfor %}
+                         </select>
+                         {% elif group.name == 'Use Purpose' %}
+                         <select name="use_purpose_option_id" class="form-select">
+                             <option value="">-- Optional --</option>
+                             {% for option in group.options %}
+                                 <option value="{{ option.id }}" {% if option.id == asset.use_purpose_option_id %}selected{% endif %}>
+                                     {{ option.name }}
+                                 </option>
+                             {% endfor %}
+                         </select>
+                         {% endif %}
+                     </div>
+                     {% endfor %}
+
                      <div class="mb-3">
                          <label class="form-label">AI Tags (Comma separated)</label>
                          <textarea name="ai_tags" class="form-control" rows="3">{{ asset.ai_tags }}</textarea>

@@ -5,5 +5,11 @@
        <span class="badge bg-secondary">
         📁 {{ asset.category.name if asset.category else "Uncategorized" }}
     </span>
+    {% if asset.copyright_option %}
+        <span class="badge bg-info" style="font-size:11px;">{{ asset.copyright_option.name }}</span>
+    {% endif %}
+    {% if asset.use_purpose_option %}
+        <span class="badge bg-success" style="font-size:11px;">{{ asset.use_purpose_option.name }}</span>
+    {% endif %}
    </div>
    

@@ -42,13 +42,18 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4", "mov", "heic"}
 load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 
-# Migrate existing databases: add original_file_path column if missing
-with engine.connect() as _conn:
-    try:
-        _conn.execute(text("ALTER TABLE media_assets ADD COLUMN original_file_path VARCHAR"))
-        _conn.commit()
-    except Exception:
-        pass
+# Migrate existing databases: add columns if missing
+for _col_def in (
+    "original_file_path VARCHAR",
+    "copyright_option_id INTEGER",
+    "use_purpose_option_id INTEGER",
+):
+    with engine.connect() as _conn:
+        try:
+            _conn.execute(text(f"ALTER TABLE media_assets ADD COLUMN {_col_def}"))
+            _conn.commit()
+        except Exception:
+            pass
 
 
 app = FastAPI(title="MediaVault Pro")
@@ -64,6 +69,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def require_admin(current_user: models.User):
+    if current_user.username == 'guest':
+        raise HTTPException(status_code=403, detail="Admin only")
 
 
 # --- 1. DASHBOARD ---
@@ -134,12 +143,16 @@ async def dashboard(
     # 🚀 5. EXECUTE & RENDER
     assets = query.all()
     categories = db.query(models.Category).all()
+    subcategory_groups = db.query(models.SubcategoryGroup).options(
+        joinedload(models.SubcategoryGroup.options)
+    ).all()
 
     return templates.TemplateResponse(
-    request=request, 
-    name="dashboard.html", 
+    request=request,
+    name="dashboard.html",
     context={"assets": assets,
      "categories": categories,
+     "subcategory_groups": subcategory_groups,
      "user": current_user
      }
 )
@@ -150,11 +163,13 @@ async def dashboard(
 async def upload_media(
     request: Request,
     file: UploadFile = File(...),
-    asset_title: str = Form(...),     # 👈 Add this: Get the Title from the form!
+    asset_title: str = Form(...),
     category_name: str = Form(...),
+    copyright_option_id: int = Form(None),
+    use_purpose_option_id: int = Form(None),
     db: Session = Depends(database.get_db),
-   is_logged_in: str = Cookie(None), # Added the comma!
-current_user: models.User = Depends(security.get_current_user) #Added today, 4/15
+    is_logged_in: str = Cookie(None),
+    current_user: models.User = Depends(security.get_current_user)
 ):
     # 🚫 Only logged-in users can upload
     if is_logged_in != "true":
@@ -163,13 +178,16 @@ current_user: models.User = Depends(security.get_current_user) #Added today, 4/1
     # 🕵️‍♂️ 1. Extension Guard
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "mp4", "mov", "heic"}
     file_ext = file.filename.split(".")[-1].lower()
-    
+
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file.")
 
     # 🚀 2. Hand off to the Manager
-    # This one line replaces all the code you were repeating!
-    media_service.handle_upload_process(db, file, category_name, asset_title)
+    media_service.handle_upload_process(
+        db, file, category_name, asset_title,
+        copyright_option_id=copyright_option_id,
+        use_purpose_option_id=use_purpose_option_id
+    )
 
     return RedirectResponse(url="/", status_code=303)
 
@@ -273,7 +291,12 @@ current_user: models.User = Depends(security.get_current_user)
 
 # --- 4. CATEGORIES ---
 @app.post("/add-category")
-async def add_category(name: str = Form(...), db: Session = Depends(get_db)):
+async def add_category(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    require_admin(current_user)
     database_ops.get_or_create_category(db, name)
     return RedirectResponse(url="/", status_code=303)
 
@@ -318,19 +341,35 @@ async def export_vault_data():
 def startup_tasks():
     db = SessionLocal()
     try:
-        # 1. Create categories if they don't exist
-        if not db.query(models.Category).first():
-            db.add_all([models.Category(name="Photography"), models.Category(name="AI Art")])
-            db.commit()
-        
-        # 2. Create admin if it doesn't exist
+        # 1. Seed default top-level categories
+        for cat_name in ("Photography", "AI Art", "Short Video"):
+            database_ops.get_or_create_category(db, cat_name)
+
+        # 2. Seed subcategory groups and their default options
+        _subcategory_defaults = {
+            "Copyright Status": ["Copyrighted", "Not Copyrighted"],
+            "Use Purpose":      ["Personal", "Commercial"],
+        }
+        for group_name, options in _subcategory_defaults.items():
+            group = db.query(models.SubcategoryGroup).filter_by(name=group_name).first()
+            if not group:
+                group = models.SubcategoryGroup(name=group_name)
+                db.add(group)
+                db.flush()
+            for opt_name in options:
+                if not db.query(models.SubcategoryOption).filter_by(
+                    name=opt_name, group_id=group.id
+                ).first():
+                    db.add(models.SubcategoryOption(name=opt_name, group_id=group.id))
+        db.commit()
+
+        # 3. Create admin if it doesn't exist
         admin = db.query(models.User).filter(models.User.username == "admin").first()
         if not admin:
             from security import get_password_hash
-            # 💡 TIP: Make sure your password here isn't actually super long!
             new_user = models.User(
-                username="admin", 
-                hashed_password=get_password_hash("admin123") # Change this later!
+                username="admin",
+                hashed_password=get_password_hash("admin123")
             )
             db.add(new_user)
             db.commit()
@@ -341,14 +380,46 @@ def startup_tasks():
         db.close()
     
 @app.post("/delete-category/{cat_id}")
-async def delete_category(cat_id: int, 
-db: Session = Depends(database.get_db),
-current_user: models.User = Depends(security.get_current_user)
+async def delete_category(
+    cat_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
 ):
-    # Find it in the vault
+    require_admin(current_user)
     category = db.query(models.Category).filter(models.Category.id == cat_id).first()
     if category:
         db.delete(category)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/add-subcategory-option")
+async def add_subcategory_option(
+    group_id: int = Form(...),
+    option_name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    require_admin(current_user)
+    option_name = option_name.strip()
+    if option_name:
+        existing = db.query(models.SubcategoryOption).filter_by(
+            name=option_name, group_id=group_id
+        ).first()
+        if not existing:
+            db.add(models.SubcategoryOption(name=option_name, group_id=group_id))
+            db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/delete-subcategory-option/{option_id}")
+async def delete_subcategory_option(
+    option_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    require_admin(current_user)
+    option = db.query(models.SubcategoryOption).filter_by(id=option_id).first()
+    if option:
+        db.delete(option)
         db.commit()
     return RedirectResponse(url="/", status_code=303)
 
@@ -357,36 +428,38 @@ current_user: models.User = Depends(security.get_current_user)
 async def edit_page(request: Request, asset_id: int, db: Session = Depends(database.get_db)):
     asset = database_ops.get_asset_by_id(db, asset_id)
     categories = db.query(models.Category).all()
+    subcategory_groups = db.query(models.SubcategoryGroup).options(
+        joinedload(models.SubcategoryGroup.options)
+    ).all()
     return templates.TemplateResponse(
-    request=request, 
-    name="edit.html", 
-    context={"asset": asset, "categories": categories}
+    request=request,
+    name="edit.html",
+    context={"asset": asset, "categories": categories, "subcategory_groups": subcategory_groups}
 )
 
 # 2. The "Update Logic" - This saves the changes
 
 @app.post("/edit/{asset_id}")
 async def update_asset(
-    asset_id: int, 
-    name: str = Form(...), 
+    asset_id: int,
+    name: str = Form(...),
     ai_tags: str = Form(...),
-    category_id: int = Form(...), 
+    category_id: int = Form(...),
+    copyright_option_id: int = Form(None),
+    use_purpose_option_id: int = Form(None),
     db: Session = Depends(database.get_db)
 ):
-    # 1. Find the asset in the vault using the ID from the URL
     asset = db.query(models.DBMediaAsset).filter(models.DBMediaAsset.id == asset_id).first()
-    
+
     if asset:
-        # 🖊️ 2. Overwrite the old info with the new info from the form
         asset.name = name
         asset.ai_tags = ai_tags
-        asset.category_id = category_id # 👈 And this line!
-        
-        # 🔒 3. Lock it in!
+        asset.category_id = category_id
+        asset.copyright_option_id = copyright_option_id
+        asset.use_purpose_option_id = use_purpose_option_id
         db.commit()
         print(f"DEBUG: Asset {asset_id} updated successfully!")
-    
-    # 🏠 4. Send the user back to the dashboard to see the changes
+
     return RedirectResponse(url="/", status_code=303)
 
 @app.get("/maintenance/cleanup")

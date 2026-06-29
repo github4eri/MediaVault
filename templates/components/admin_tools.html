@@ -1,16 +1,40 @@
 <div class="admin-panel" style="background: #f8f9fa; padding: 25px; border-radius: 12px; border: 1px solid #dee2e6; margin-top: 20px;">
        <h3 style="margin-top: 0;">💻 Data Management</h3>
-       
+
        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
-    
+
         <button type="button" onclick="window.location.href='/export-vault'" class="btn">
             <i class="fas fa-file-export" style="margin-right: 8px;"></i> Export to CSV
         </button>
-        
+
         <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
             <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
         </form>
-    
+
     </div>
+
+    <h4 style="margin-bottom: 12px; color: #495057;">🏷️ Subcategory Options</h4>
+    {% for group in subcategory_groups %}
+    <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+        <strong style="display: block; margin-bottom: 10px; color: #343a40;">{{ group.name }}</strong>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+            {% for option in group.options %}
+            <span style="display: inline-flex; align-items: center; background: #e9ecef; border-radius: 20px; padding: 4px 12px; font-size: 13px;">
+                {{ option.name }}
+                <form action="/delete-subcategory-option/{{ option.id }}" method="post" style="display:inline; margin-left: 6px;">
+                    <button type="submit" onclick="return confirm('Delete option \'{{ option.name }}\'?')"
+                        style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; padding:0; font-size:13px; line-height:1;">✕</button>
+                </form>
+            </span>
+            {% endfor %}
+        </div>
+        <form action="/add-subcategory-option" method="post" style="display: flex; gap: 8px; align-items: center;">
+            <input type="hidden" name="group_id" value="{{ group.id }}">
+            <input type="text" name="option_name" placeholder="New option..." required
+                style="padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; flex: 1; max-width: 220px;">
+            <button type="submit" style="padding: 6px 14px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add</button>
+        </form>
+    </div>
+    {% endfor %}
 </div>
    

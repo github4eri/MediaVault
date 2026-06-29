@@ -39,6 +39,22 @@
                 {% endfor %}
             </select>
 
+            {% for group in subcategory_groups %}
+            <label style="display:block; margin-bottom:5px; font-weight:bold;">{{ group.name }}</label>
+            {% if group.name == 'Copyright Status' %}
+            <select name="copyright_option_id" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px; background-color: white;">
+            {% elif group.name == 'Use Purpose' %}
+            <select name="use_purpose_option_id" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px; background-color: white;">
+            {% else %}
+            <select name="subcategory_{{ group.id }}" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px; background-color: white;">
+            {% endif %}
+                <option value="">-- Optional --</option>
+                {% for option in group.options %}
+                    <option value="{{ option.id }}">{{ option.name }}</option>
+                {% endfor %}
+            </select>
+            {% endfor %}
+
             <label style="display:block; margin-bottom:5px; font-weight:bold;">Choose Media</label>
             <div class="custom-file-upload-container" style="margin-bottom: 25px;">
                 <input type="file" name="file" id="file-upload" required 

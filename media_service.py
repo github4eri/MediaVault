@@ -33,7 +33,14 @@ def _convert_heic(heic_path: str, base_name: str, upload_folder: str) -> str:
     return output_filename
 
 
-def handle_upload_process(db: Session, file, category_name: str, asset_title: str):
+def handle_upload_process(
+    db: Session,
+    file,
+    category_name: str,
+    asset_title: str,
+    copyright_option_id: int = None,
+    use_purpose_option_id: int = None,
+):
     """Handles saving, AI analysis, and DB registration."""
     upload_folder = "static/uploads"
 
@@ -67,6 +74,8 @@ def handle_upload_process(db: Session, file, category_name: str, asset_title: st
         file_path=display_filename,
         ai_tags=ai_description,
         category_id=cat_id,
-        original_file_path=original_file_path
+        original_file_path=original_file_path,
+        copyright_option_id=copyright_option_id,
+        use_purpose_option_id=use_purpose_option_id,
     )
     return True
