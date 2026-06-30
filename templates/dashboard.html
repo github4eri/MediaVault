@@ -79,9 +79,11 @@
             </div>
         {% endif %}
     </div>
-    
+
     {% if request.cookies.get('is_logged_in') == 'true' and user.username != 'guest' %}
-        {% include 'components/admin_tools.html' %}
+    <div style="margin-bottom: 20px;">
+        <a href="/admin" class="btn">⚙ Admin Dashboard</a>
+    </div>
     {% endif %}
 
     <div class="search-area" style="display: flex; gap: 20px; align-items: center;">
@@ -89,12 +91,6 @@
             <input type="text" name="search" ...>
             <button type="submit" class="btn">Search</button>
         </form>
-
-        {% if request.cookies.get('is_logged_in') == 'true' and user.username != 'guest' %}
-            <form action="/add-category/" method="post" ...>
-                ...
-            </form>
-        {% endif %}
     </div>
 
     <div class="category-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 15px;">
@@ -108,12 +104,6 @@
             <a href="/?category={{ cat.id }}" style="text-decoration:none; color:var(--text-main); font-size:13px; font-weight:600;">
                 {{ cat.name }}
             </a>
-    
-            {% if user.username != 'guest' %}
-            <form action="/delete-category/{{ cat.id }}" method="post" style="margin-left: 10px; display: flex; align-items: center;">
-                <button type="submit" onclick="return confirm('Delete folder?')" style="background:none; border:none; color:#ff4757; cursor:pointer; font-weight:bold; padding:0; font-size: 14px; line-height: 1;">✕</button>
-            </form>
-            {% endif %}
         </div>
         {% endfor %}
 

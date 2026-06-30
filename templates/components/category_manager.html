@@ -1,0 +1,20 @@
+<h4 style="margin-bottom: 12px; color: #495057;">📁 Category</h4>
+<div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+    <strong style="display: block; margin-bottom: 10px; color: #343a40;">Main Category</strong>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+        {% for cat in categories %}
+        <span style="display: inline-flex; align-items: center; background: #e9ecef; border-radius: 20px; padding: 4px 12px; font-size: 13px;">
+            {{ cat.name }}
+            <form action="/delete-category/{{ cat.id }}" method="post" style="display:inline; margin-left: 6px;">
+                <button type="submit" onclick="return confirm('Delete category \'{{ cat.name }}\'?')"
+                    style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; padding:0; font-size:13px; line-height:1;">✕</button>
+            </form>
+        </span>
+        {% endfor %}
+    </div>
+    <form action="/add-category" method="post" style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" name="name" placeholder="New category..." required
+            style="padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; flex: 1; max-width: 220px;">
+        <button type="submit" style="padding: 6px 14px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">+ Add</button>
+    </form>
+</div>

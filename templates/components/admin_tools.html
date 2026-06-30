@@ -1,18 +1,4 @@
 <div class="admin-panel" style="background: #f8f9fa; padding: 25px; border-radius: 12px; border: 1px solid #dee2e6; margin-top: 20px;">
-       <h3 style="margin-top: 0;">💻 Data Management</h3>
-
-       <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
-
-        <button type="button" onclick="window.location.href='/export-vault'" class="btn">
-            <i class="fas fa-file-export" style="margin-right: 8px;"></i> Export to CSV
-        </button>
-
-        <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
-            <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
-        </form>
-
-    </div>
-
     <h4 style="margin-bottom: 12px; color: #495057;">🏷️ Subcategory Options</h4>
     {% for group in subcategory_groups %}
     <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
@@ -37,4 +23,19 @@
     </div>
     {% endfor %}
 </div>
-   
+
+<div class="admin-panel" style="background: #f8f9fa; padding: 25px; border-radius: 12px; border: 1px solid #dee2e6; margin-top: 20px;">
+    <h3 style="margin-top: 0;">💻 Data Management</h3>
+
+    <div style="display: flex; gap: 15px; align-items: center;">
+
+        <button type="button" onclick="window.location.href='/export-vault'" class="btn">
+            <i class="fas fa-file-export" style="margin-right: 8px;"></i> Export to CSV
+        </button>
+
+        <form id="import-form" action="/import-vault" method="post" enctype="multipart/form-data" style="display:none;">
+            <input type="file" id="zip-input" name="file" accept=".zip" onchange="this.form.submit();">
+        </form>
+
+    </div>
+</div>

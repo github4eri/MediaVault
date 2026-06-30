@@ -300,6 +300,32 @@ async def add_category(
     database_ops.get_or_create_category(db, name)
     return RedirectResponse(url="/", status_code=303)
 
+@app.get("/admin")
+async def admin_dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    is_logged_in: str = Cookie(None),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    if is_logged_in != "true":
+        return RedirectResponse(url="/login", status_code=303)
+    require_admin(current_user)
+
+    categories = db.query(models.Category).all()
+    subcategory_groups = db.query(models.SubcategoryGroup).options(
+        joinedload(models.SubcategoryGroup.options)
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin.html",
+        context={
+            "categories": categories,
+            "subcategory_groups": subcategory_groups,
+            "user": current_user
+        }
+    )
+
 # --- 5. EXPORT / BULK (Special Tools) ---
 
 @app.get("/export-vault")
