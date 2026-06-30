@@ -50,14 +50,19 @@ Login sets two cookies: `username` (httponly) and `is_logged_in`. `security.get_
 
 **Module responsibilities:**
 - `main.py` — all FastAPI routes
-- `models.py` — SQLAlchemy models (`Category`, `DBMediaAsset`, `User`)
+- `models.py` — SQLAlchemy models (`Category`, `SubcategoryGroup`, `SubcategoryOption`, `DBMediaAsset`, `User`)
 - `database.py` — engine/session setup (SQLite)
 - `database_ops.py` — reusable DB helpers (`create_asset`, `get_or_create_category`, `get_asset_by_id`)
 - `media_service.py` — orchestrates upload → AI → DB pipeline; handles HEIC conversion (still→JPG via `pillow-heif`, video/multi-frame→MP4 via `ffmpeg`)
 - `vision.py` — Gemini API wrapper; auto-detects image vs. video mime type; falls back to `"Vault, Media, Uncategorized"` on error
 - `security.py` — bcrypt hashing (`verify_password`, `get_password_hash`) and `get_current_user` dependency
 
-**Templates** are in `templates/` with reusable partials under `templates/components/` (`checkbox.html`, `tags.html`, `actions.html`, `meta.html`, `preview.html`, `upload_modal.html`, `admin_tools.html`). The dashboard conditionally includes admin-only components using `{% if user.username != 'guest' %}`.
+**Categories vs. Subcategory Options:** `Category` is a flat list (no parent/child nesting) used to file assets and filter the library. `SubcategoryGroup`/`SubcategoryOption` is a separate, unrelated taxonomy of admin-defined attribute groups (e.g. "Copyright Status", "Use Purpose") that assets can be tagged with — the name is historical and doesn't mean categories have subcategories.
+
+**Admin dashboard (`/admin`):**
+All admin-only tooling (category management, subcategory option management, CSV export/import) lives on its own page rather than inline on the main dashboard. `GET /admin` redirects to `/login` if not logged in and calls `require_admin()` (403) for guests. The main page (`dashboard.html`) only shows a "⚙ Admin Dashboard" link (admin-only) below the title, plus the search/filter/grid for browsing.
+
+**Templates** are in `templates/` with reusable partials under `templates/components/` (`checkbox.html`, `tags.html`, `actions.html`, `meta.html`, `preview.html`, `upload_modal.html`, `admin_tools.html`, `category_manager.html`). There is no shared base template — `dashboard.html` and `admin.html` each define their own `<style>` block. `admin.html` includes `category_manager.html` (category add/delete) and `admin_tools.html` (Subcategory Options, then Data Management/Export-Import at the bottom); both are admin-only and rendered only on `/admin`, not on the dashboard.
 
 ## Supported File Types
 
