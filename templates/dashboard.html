@@ -271,7 +271,11 @@ function clearSelection() {
             
             {% for asset in assets %}
                 <div class="card">
-                    <img src="/static/uploads/{{ asset.file_path }}">
+                    {% if asset.file_path.lower().endswith('.mp4') or asset.file_path.lower().endswith('.mov') %}
+                        <video muted src="/static/uploads/{{ asset.file_path }}"></video>
+                    {% else %}
+                        <img src="/static/uploads/{{ asset.file_path }}">
+                    {% endif %}
                     <p>{{ asset.ai_tags }}</p>
                 </div>
             {% endfor %}

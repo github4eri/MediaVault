@@ -33,6 +33,20 @@ def _convert_heic(heic_path: str, base_name: str, upload_folder: str) -> str:
     return output_filename
 
 
+def _compress_video(video_path: str, base_name: str, upload_folder: str) -> str:
+    """Compress a raw MOV/MP4 into a smaller preview MP4. Returns the preview filename."""
+    output_filename = base_name + "_preview.mp4"
+    output_path = os.path.join(upload_folder, output_filename)
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", video_path, "-c:v", "libx264", "-crf", "32",
+         "-preset", "veryfast", "-vf", "scale='min(1280,iw)':-2",
+         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+         "-movflags", "+faststart", output_path],
+        check=True, capture_output=True
+    )
+    return output_filename
+
+
 def handle_upload_process(
     db: Session,
     file,
@@ -59,6 +73,16 @@ def handle_upload_process(
             display_filename = converted_filename
         except Exception as e:
             print(f"DEBUG: HEIC Conversion Error - {e}")
+
+    elif file.filename.lower().endswith((".mov", ".mp4")):
+        video_path = os.path.join(upload_folder, file.filename)
+        base_name = os.path.splitext(file.filename)[0]
+        try:
+            preview_filename = _compress_video(video_path, base_name, upload_folder)
+            original_file_path = file.filename
+            display_filename = preview_filename
+        except Exception as e:
+            print(f"DEBUG: Video Compression Error - {e}")
 
     ai_path = os.path.join(upload_folder, display_filename)
     try:

@@ -1,4 +1,5 @@
 import os
+import mimetypes
 import uuid
 import shutil
 import zipfile
@@ -252,10 +253,13 @@ async def download_original(
     file_path = os.path.join("static/uploads", asset.original_file_path)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File missing from disk")
+    media_type, _ = mimetypes.guess_type(asset.original_file_path)
+    if media_type is None:
+        media_type = "application/octet-stream"
     return FileResponse(
         file_path,
         filename=asset.original_file_path,
-        media_type="image/heic",
+        media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={asset.original_file_path}"}
     )
 
@@ -490,9 +494,11 @@ async def update_asset(
 
 @app.get("/maintenance/cleanup")
 async def cleanup_orphaned_files(db: Session = Depends(database.get_db)):
-    # 1. Get all file names currently in the Database
-    db_files = [asset.file_path for asset in db.query(models.DBMediaAsset).all()]
-    
+    # 1. Get all file names currently in the Database (display files + raw originals)
+    assets = db.query(models.DBMediaAsset).all()
+    db_files = [asset.file_path for asset in assets]
+    db_files += [asset.original_file_path for asset in assets if asset.original_file_path]
+
     # 2. Get all file names currently in the Folder
     upload_folder = "static/uploads"
     folder_files = os.listdir(upload_folder)
