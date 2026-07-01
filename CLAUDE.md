@@ -43,7 +43,7 @@ The SQLite database (`media_vault_v2.db`) and default categories ("Photography",
 ## Architecture
 
 **Request flow for uploads:**
-`POST /upload/` → `media_service.handle_upload_process()` → saves file to `static/uploads/` → (if `.heic`: convert to JPG or MP4, keep original) → `vision.analyze_media()` (Gemini) → `database_ops.create_asset()` (SQLite)
+`POST /upload/` → `media_service.handle_upload_process()` → saves file to `static/uploads/` → (if `.heic`: convert to JPG or MP4, keep original; if `.mov`/`.mp4`: compress to a smaller preview MP4, keep original) → `vision.analyze_media()` (Gemini) → `database_ops.create_asset()` (SQLite)
 
 **Auth flow:**
 Login sets two cookies: `username` (httponly) and `is_logged_in`. `security.get_current_user()` reads the `username` cookie to look up the `User` row. Role gating is done by checking `user.username != 'guest'` in both templates and route handlers — there is no `role` column, just the username string.
@@ -53,7 +53,7 @@ Login sets two cookies: `username` (httponly) and `is_logged_in`. `security.get_
 - `models.py` — SQLAlchemy models (`Category`, `SubcategoryGroup`, `SubcategoryOption`, `DBMediaAsset`, `User`)
 - `database.py` — engine/session setup (SQLite)
 - `database_ops.py` — reusable DB helpers (`create_asset`, `get_or_create_category`, `get_asset_by_id`)
-- `media_service.py` — orchestrates upload → AI → DB pipeline; handles HEIC conversion (still→JPG via `pillow-heif`, video/multi-frame→MP4 via `ffmpeg`)
+- `media_service.py` — orchestrates upload → AI → DB pipeline; handles HEIC conversion (still→JPG via `pillow-heif`, video/multi-frame→MP4 via `ffmpeg`) and raw video compression (`.mov`/`.mp4` → smaller preview MP4 via `ffmpeg`, `_compress_video()`)
 - `vision.py` — Gemini API wrapper; auto-detects image vs. video mime type; falls back to `"Vault, Media, Uncategorized"` on error
 - `security.py` — bcrypt hashing (`verify_password`, `get_password_hash`) and `get_current_user` dependency
 
@@ -69,7 +69,10 @@ All admin-only tooling (category management, subcategory option management, CSV 
 - **Images:** `png`, `jpg`, `jpeg`, `webp`, `gif`, `heic`
 - **Videos:** `mp4`, `mov`
 - HEIC uploads are auto-converted on the server; the original HEIC is kept in `static/uploads/` and downloadable via `/download-original/{id}` (admin only). The `DBMediaAsset.original_file_path` column stores the original filename when set.
-- `ffmpeg` must be on PATH for HEIC video conversion. `pillow-heif` handles HEIC still images.
+- `.mov`/`.mp4` uploads get the same raw + preview treatment: the raw file is kept as `original_file_path` and a compressed `{name}_preview.mp4` (H.264, CRF 32, capped at 720p width, via `_compress_video()`) becomes `file_path` — the version shown in the grid and analyzed by Gemini. If compression fails, the raw file is used directly as `file_path` and no original is kept, same fallback behavior as a failed HEIC conversion.
+- `/download-original/{id}` detects the correct `Content-Type` from the original's extension via `mimetypes.guess_type()` — it is not HEIC-specific.
+- `/maintenance/cleanup` treats both `file_path` and `original_file_path` as "in use" — it will not delete raw originals (HEIC or video) as orphans.
+- `ffmpeg` must be on PATH for HEIC video conversion and video preview compression. `pillow-heif` handles HEIC still images.
 
 ## Known Quirks
 
