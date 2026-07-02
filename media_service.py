@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import vision
 import database_ops
@@ -59,7 +60,7 @@ def handle_upload_process(
     upload_folder = "static/uploads"
 
     with open(os.path.join(upload_folder, file.filename), "wb+") as f:
-        f.write(file.file.read())
+        shutil.copyfileobj(file.file, f)
 
     original_file_path = None
     display_filename = file.filename
